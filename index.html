@@ -12,6 +12,19 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Azure AI Search vs SQL Server 2025 Hyperscale — Cost & Capability Crossover</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+  (() => {
+    const theme = document.documentElement.getAttribute("data-theme") || "light";
+    const link = document.createElement("link");
+    link.id = "hljs-theme";
+    link.rel = "stylesheet";
+    link.href = theme === "dark"
+      ? "https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github-dark.min.css"
+      : "https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github.min.css";
+    document.head.appendChild(link);
+  })();
+</script>
+<script defer src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
 <style>
   :root {
     color-scheme: light;
@@ -386,6 +399,193 @@
     font-size: 0.9rem;
     color: var(--cp-text);
   }
+
+  /* ======= Detailed playbook tab ======= */
+  .playbook-layout {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    gap: 22px;
+    align-items: start;
+  }
+  @media (max-width: 1000px) {
+    .playbook-layout { grid-template-columns: 1fr; }
+    .playbook-toc { position: static !important; max-height: none !important; }
+  }
+  .playbook-toc {
+    position: sticky;
+    top: 12px;
+    background: var(--cp-surface);
+    border: 1px solid var(--cp-border);
+    border-radius: 12px;
+    padding: 12px 10px;
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
+    font-size: 0.83rem;
+  }
+  .playbook-toc .toc-title {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--cp-text-muted);
+    font-weight: 600;
+    padding: 4px 8px 8px;
+  }
+  .playbook-toc a {
+    display: block;
+    padding: 6px 8px;
+    color: var(--cp-text-muted);
+    text-decoration: none;
+    border-radius: 6px;
+    border-left: 2px solid transparent;
+    line-height: 1.3;
+  }
+  .playbook-toc a:hover {
+    background: var(--cp-surface-soft);
+    color: var(--cp-text);
+  }
+  .playbook-toc a .num {
+    display: inline-block;
+    width: 22px;
+    color: var(--cp-accent);
+    font-family: Consolas, "Courier New", Courier, monospace;
+    font-weight: 600;
+  }
+
+  .step-deep {
+    background: var(--cp-surface);
+    border: 1px solid var(--cp-border);
+    border-radius: 14px;
+    padding: 20px 22px;
+    margin-bottom: 18px;
+    scroll-margin-top: 12px;
+  }
+  .step-deep > h3 {
+    font-size: 1.05rem;
+    margin: 0 0 4px;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+  }
+  .step-deep > h3 .badge {
+    background: var(--cp-accent);
+    color: var(--cp-accent-fg);
+    border-radius: 999px;
+    padding: 2px 10px;
+    font-size: 0.78rem;
+    font-family: Consolas, "Courier New", Courier, monospace;
+    font-weight: 600;
+  }
+  .step-deep > .lede {
+    color: var(--cp-text-muted);
+    margin: 0 0 14px;
+    font-size: 0.9rem;
+  }
+  .step-deep h4 {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--cp-text-muted);
+    margin: 16px 0 6px;
+    font-weight: 600;
+  }
+  .step-deep ol.substeps,
+  .step-deep ul.bullets {
+    margin: 0 0 8px;
+    padding-left: 22px;
+    font-size: 0.9rem;
+    line-height: 1.55;
+  }
+  .step-deep ol.substeps > li,
+  .step-deep ul.bullets > li {
+    margin-bottom: 6px;
+  }
+  .step-deep p {
+    margin: 0 0 10px;
+    font-size: 0.9rem;
+    line-height: 1.55;
+  }
+  .step-deep code:not(pre code) {
+    background: var(--cp-surface-soft);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.83rem;
+    font-family: Consolas, "Courier New", Courier, monospace;
+  }
+
+  .code-block {
+    position: relative;
+    margin: 8px 0 12px;
+    border: 1px solid var(--cp-border);
+    border-radius: 10px;
+    overflow: hidden;
+    background: var(--cp-bg-elevated);
+  }
+  .code-block .code-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 12px;
+    background: var(--cp-surface-soft);
+    border-bottom: 1px solid var(--cp-border);
+    font-size: 0.74rem;
+    color: var(--cp-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .code-block .code-header .lang {
+    font-weight: 600;
+    color: var(--cp-accent);
+    font-family: Consolas, "Courier New", Courier, monospace;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+  .code-block pre {
+    margin: 0;
+    padding: 12px 14px;
+    overflow-x: auto;
+    font-size: 0.82rem;
+    line-height: 1.5;
+    background: transparent;
+  }
+  .code-block code {
+    font-family: Consolas, "Courier New", Courier, monospace;
+    background: transparent !important;
+    padding: 0 !important;
+  }
+
+  .sample-output {
+    background: var(--cp-bg-elevated);
+    border: 1px dashed var(--cp-border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-family: Consolas, "Courier New", Courier, monospace;
+    font-size: 0.8rem;
+    color: var(--cp-text-muted);
+    overflow-x: auto;
+    white-space: pre;
+  }
+
+  .pitfall {
+    background: rgba(245, 158, 11, 0.10);
+    border-left: 3px solid var(--cp-warning);
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 0.86rem;
+    color: var(--cp-text);
+    margin: 8px 0 0;
+  }
+  .pitfall strong { color: var(--cp-warning); }
+
+  .verify {
+    background: rgba(22, 163, 74, 0.08);
+    border-left: 3px solid var(--cp-success);
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 0.86rem;
+    color: var(--cp-text);
+    margin: 8px 0 0;
+  }
+  .verify strong { color: var(--cp-success); }
 </style>
 </head>
 <body>
@@ -400,6 +600,7 @@
     <button class="tab active" data-tab="cost">Cost crossover</button>
     <button class="tab" data-tab="features">Feature comparison</button>
     <button class="tab" data-tab="migration">Migration steps</button>
+    <button class="tab" data-tab="playbook-detailed">Build playbook (detailed)</button>
     <button class="tab" data-tab="pricing">Pricing reference</button>
   </div>
 
@@ -804,7 +1005,959 @@
     </div>
   </section>
 
-  <!-- ========== TAB 4: PRICING REF ========== -->
+  <!-- ========== TAB 4: DETAILED PLAYBOOK ========== -->
+  <section id="tab-playbook-detailed" class="tab-panel">
+    <div class="card">
+      <h2>Build playbook (detailed) — execute each step end-to-end</h2>
+      <p style="color:var(--cp-text-muted); font-size:0.92rem; margin: 0 0 4px;">
+        Below is the operator-grade walkthrough for the 15-step build. Every step shows: <strong>goal</strong>, <strong>prerequisites</strong>, <strong>commands / code</strong>, <strong>sample execution</strong>, <strong>validation check</strong>, and the <strong>common pitfalls</strong>. All Azure CLI samples assume <code>az</code> ≥ 2.60. SQL samples assume Azure SQL Database Hyperscale (the SQL Server 2025 vector engine). Python samples assume Python 3.11 with <code>azure-identity</code>, <code>azure-ai-documentintelligence</code>, <code>openai</code>, <code>pyodbc</code>.
+      </p>
+      <p style="color:var(--cp-text-muted); font-size:0.86rem; margin: 0;">
+        Variables used throughout: <code>RG=rg-search-prod</code> · <code>LOC=eastus</code> · <code>SRV=sql-search-prod</code> · <code>DB=searchdb</code> · <code>AOAI=aoai-search-prod</code> · <code>DOCAI=docai-search-prod</code>.
+      </p>
+    </div>
+
+    <div class="playbook-layout">
+      <nav class="playbook-toc" aria-label="Playbook steps">
+        <div class="toc-title">15 steps</div>
+        <a href="#pb-1"><span class="num">01</span>Stand up the database</a>
+        <a href="#pb-2"><span class="num">02</span>Design the schema</a>
+        <a href="#pb-3"><span class="num">03</span>Replace indexers</a>
+        <a href="#pb-4"><span class="num">04</span>Document cracking</a>
+        <a href="#pb-5"><span class="num">05</span>Chunking</a>
+        <a href="#pb-6"><span class="num">06</span>Embeddings</a>
+        <a href="#pb-7"><span class="num">07</span>Vector index</a>
+        <a href="#pb-8"><span class="num">08</span>Hybrid + RRF</a>
+        <a href="#pb-9"><span class="num">09</span>Semantic re-ranker</a>
+        <a href="#pb-10"><span class="num">10</span>Scoring &amp; synonyms</a>
+        <a href="#pb-11"><span class="num">11</span>Facets &amp; suggesters</a>
+        <a href="#pb-12"><span class="num">12</span>Observability</a>
+        <a href="#pb-13"><span class="num">13</span>Security &amp; identity</a>
+        <a href="#pb-14"><span class="num">14</span>Agentic retrieval</a>
+        <a href="#pb-15"><span class="num">15</span>Shadow cutover</a>
+      </nav>
+
+      <div class="playbook-content">
+
+        <!-- STEP 1 -->
+        <article class="step-deep" id="pb-1">
+          <h3><span class="badge">01</span>Stand up the database</h3>
+          <p class="lede"><strong>Goal:</strong> a production Hyperscale instance with HA + named-replica read scale-out and the preview switch flipped so DiskANN works.</p>
+
+          <h4>Prerequisites</h4>
+          <ul class="bullets">
+            <li>Azure subscription with quota for <em>Premium Mem-Optimized Gen5</em> in your region</li>
+            <li>VNet + subnet for the private endpoint</li>
+            <li>An Entra group to act as the SQL admin (no SQL auth)</li>
+          </ul>
+
+          <h4>Execute</h4>
+          <div class="code-block">
+            <div class="code-header"><span>provision.sh</span><span class="lang">bash</span></div>
+<pre><code class="language-bash">RG=rg-search-prod
+LOC=eastus
+SRV=sql-search-prod
+DB=searchdb
+ADMIN_GROUP="grp-sql-search-admins"
+ADMIN_GROUP_OID=$(az ad group show --group "$ADMIN_GROUP" --query id -o tsv)
+
+az group create -n $RG -l $LOC
+
+# Server with Entra-only auth
+az sql server create -g $RG -n $SRV -l $LOC \
+  --enable-ad-only-auth \
+  --external-admin-principal-type Group \
+  --external-admin-name "$ADMIN_GROUP" \
+  --external-admin-sid $ADMIN_GROUP_OID
+
+# Hyperscale database, Premium Mem-Opt for vector workloads
+az sql db create -g $RG -s $SRV -n $DB \
+  --edition Hyperscale \
+  --family Gen5 \
+  --compute-model Provisioned \
+  --tier Hyperscale \
+  --capacity 16 \
+  --read-scale Enabled \
+  --high-availability-replica-count 1 \
+  --backup-storage-redundancy Zone \
+  --zone-redundant true
+
+# Optional: one named replica for read scale-out (mirrors AI Search replica idea)
+az sql db replica create -g $RG -s $SRV -n $DB \
+  --partner-server $SRV --partner-database ${DB}-ro \
+  --secondary-type Named --capacity 8 --family Gen5
+</code></pre>
+          </div>
+
+          <h4>Flip the preview switch (required for DiskANN, May 2026)</h4>
+          <div class="code-block">
+            <div class="code-header"><span>enable-preview.sql</span><span class="lang">sql</span></div>
+<pre><code class="language-sql">-- Run as a member of the Entra admin group
+ALTER DATABASE SCOPED CONFIGURATION SET PREVIEW_FEATURES = ON;
+
+SELECT name, value, is_value_default
+FROM sys.database_scoped_configurations
+WHERE name = 'PREVIEW_FEATURES';
+</code></pre>
+          </div>
+
+          <h4>Sample output</h4>
+          <div class="sample-output">name              value   is_value_default
+PREVIEW_FEATURES  1       0</div>
+
+          <div class="verify"><strong>Validation:</strong> <code>SELECT @@VERSION;</code> returns <em>Microsoft SQL Azure (RTM) – 16.x</em> with the 2025 build; <code>SELECT SERVERPROPERTY('EngineEdition')</code> = 5 (Hyperscale).</div>
+          <div class="pitfall"><strong>Pitfall:</strong> picking Standard Gen5 vCore (not Premium Mem-Opt) means vector queries fall back to row-mode execution and DiskANN training is &gt;5× slower. Spend the extra ~40% on Premium for any meaningful vector workload.</div>
+        </article>
+
+        <!-- STEP 2 -->
+        <article class="step-deep" id="pb-2">
+          <h3><span class="badge">02</span>Design the schema</h3>
+          <p class="lede"><strong>Goal:</strong> a normalized <code>documents</code> + <code>chunks</code> shape that supports vector search, full-text search, faceting, and audit — equivalent to an AI Search index with sub-document chunks.</p>
+
+          <h4>Execute</h4>
+          <div class="code-block">
+            <div class="code-header"><span>schema.sql</span><span class="lang">sql</span></div>
+<pre><code class="language-sql">CREATE SCHEMA search;
+GO
+
+CREATE TABLE search.documents (
+  doc_id          UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID() PRIMARY KEY,
+  source_uri      NVARCHAR(1024)   NOT NULL,
+  source_etag     NVARCHAR(128)    NULL,
+  title           NVARCHAR(512)    NULL,
+  author          NVARCHAR(256)    NULL,
+  tags            NVARCHAR(MAX)    NULL,          -- JSON array
+  language        CHAR(2)          NULL,
+  modified_at     DATETIME2(3)     NOT NULL,
+  raw_text        NVARCHAR(MAX)    NULL,
+  ingested_at     DATETIME2(3)     NOT NULL DEFAULT SYSUTCDATETIME(),
+  CONSTRAINT UQ_documents_source UNIQUE (source_uri)
+);
+
+CREATE INDEX IX_documents_modified ON search.documents(modified_at);
+CREATE INDEX IX_documents_author   ON search.documents(author);
+
+CREATE TABLE search.chunks (
+  chunk_id        BIGINT IDENTITY(1,1) PRIMARY KEY,
+  doc_id          UNIQUEIDENTIFIER NOT NULL,
+  ordinal         INT NOT NULL,
+  text            NVARCHAR(MAX) NOT NULL,
+  embedding       VECTOR(1536) NULL,              -- text-embedding-3-small
+  embedding_model NVARCHAR(64) NULL,
+  token_count     INT NULL,
+  created_at      DATETIME2(3) NOT NULL DEFAULT SYSUTCDATETIME(),
+  CONSTRAINT FK_chunks_doc FOREIGN KEY (doc_id)
+    REFERENCES search.documents(doc_id) ON DELETE CASCADE
+);
+
+CREATE INDEX IX_chunks_doc ON search.chunks(doc_id, ordinal);
+
+-- Full-text catalog for lexical / BM25-like search
+CREATE FULLTEXT CATALOG ft_search AS DEFAULT;
+CREATE FULLTEXT INDEX ON search.chunks(text LANGUAGE 1033)
+  KEY INDEX PK__chunks__... ON ft_search WITH CHANGE_TRACKING AUTO;
+</code></pre>
+          </div>
+
+          <div class="verify"><strong>Validation:</strong>
+<pre style="margin:6px 0 0; font-size:0.78rem;"><code class="language-sql">SELECT t.name, c.name, ty.name AS dtype, c.max_length
+FROM sys.tables t JOIN sys.columns c ON c.object_id = t.object_id
+JOIN sys.types ty ON ty.user_type_id = c.user_type_id
+WHERE t.name IN ('documents','chunks') ORDER BY t.name, c.column_id;</code></pre>
+            Expect the <code>embedding</code> column to show type <code>vector</code> with <code>max_length = 6148</code> (1536 dims × 4 bytes + 4-byte header).
+          </div>
+          <div class="pitfall"><strong>Pitfall:</strong> <code>VECTOR(N)</code> in SQL Server 2025 caps at <strong>1 998 dimensions</strong>. <code>text-embedding-3-large</code> (3072 dims) <em>does not fit</em>. Use <code>text-embedding-3-small</code> (1536 dims) or truncate large embeddings with the AOAI <code>dimensions</code> parameter to stay under the cap.</div>
+        </article>
+
+        <!-- STEP 3 -->
+        <article class="step-deep" id="pb-3">
+          <h3><span class="badge">03</span>Replace indexers — build an ingestion pipeline</h3>
+          <p class="lede"><strong>Goal:</strong> reliably pick up new / changed source documents and land them in <code>search.documents</code>, then trigger chunk + embed downstream. AI Search indexers are a managed scheduler with built-in change tracking — here you own that.</p>
+
+          <h4>Reference architecture</h4>
+          <ul class="bullets">
+            <li><strong>Trigger:</strong> Azure Data Factory tumbling-window trigger every 15 min, or Event Grid for instant ingestion from Blob.</li>
+            <li><strong>Pattern:</strong> high-water mark (<code>modified_at &gt; LAST_RUN_TS</code>) for SQL/CDC sources; ETag/<code>LastModified</code> headers for Blob/ADLS; <code>_ts</code> filter for Cosmos DB.</li>
+            <li><strong>State:</strong> store last-run-cursor in a small bookkeeping table <code>search.ingestion_state</code>.</li>
+          </ul>
+
+          <div class="code-block">
+            <div class="code-header"><span>function_app.py</span><span class="lang">python</span></div>
+<pre><code class="language-python">import os, hashlib, logging
+import azure.functions as func
+from azure.identity import DefaultAzureCredential
+from azure.storage.blob import BlobServiceClient
+import pyodbc
+
+app = func.FunctionApp()
+SQL_CONN = os.environ["SQL_CONN"]   # uses Azure AD interactive / MSI
+BLOB_URL = os.environ["BLOB_URL"]
+
+@app.schedule(schedule="0 */15 * * * *", arg_name="timer")
+def ingest(timer: func.TimerRequest) -> None:
+    cred = DefaultAzureCredential()
+    svc = BlobServiceClient(account_url=BLOB_URL, credential=cred)
+    container = svc.get_container_client("corpus")
+
+    with pyodbc.connect(SQL_CONN, autocommit=False) as cn:
+        cur = cn.cursor()
+        cur.execute("SELECT last_run FROM search.ingestion_state WHERE name='blob-corpus'")
+        last_run = cur.fetchone()[0]
+
+        upserts = 0
+        for blob in container.list_blobs():
+            if blob.last_modified <= last_run:
+                continue
+            etag = blob.etag.strip('"')
+            cur.execute("""
+                MERGE search.documents AS t
+                USING (SELECT ? AS source_uri, ? AS source_etag,
+                              ? AS title, ? AS modified_at) AS s
+                ON t.source_uri = s.source_uri
+                WHEN MATCHED AND t.source_etag <> s.source_etag THEN
+                  UPDATE SET source_etag = s.source_etag,
+                             modified_at = s.modified_at,
+                             raw_text = NULL  -- force re-crack
+                WHEN NOT MATCHED THEN
+                  INSERT (source_uri, source_etag, title, modified_at)
+                  VALUES (s.source_uri, s.source_etag, s.title, s.modified_at);
+            """, f"{BLOB_URL}/corpus/{blob.name}", etag, blob.name, blob.last_modified)
+            upserts += 1
+
+        cur.execute("UPDATE search.ingestion_state SET last_run = SYSUTCDATETIME() WHERE name='blob-corpus'")
+        cn.commit()
+        logging.info(f"Ingest done: {upserts} upserts")
+</code></pre>
+          </div>
+
+          <h4>Sample execution</h4>
+          <div class="sample-output">2026-05-21T02:00:01Z  [INFO]  Ingest done: 137 upserts
+2026-05-21T02:15:01Z  [INFO]  Ingest done: 12 upserts
+2026-05-21T02:30:01Z  [INFO]  Ingest done: 0 upserts</div>
+
+          <div class="verify"><strong>Validation:</strong> after one run, <code>SELECT COUNT(*) FROM search.documents WHERE raw_text IS NULL;</code> shows the queue for Step 4 (cracking).</div>
+          <div class="pitfall"><strong>Pitfall:</strong> resetting the high-water mark to "0" silently re-ingests everything and re-embeds (Step 6) at full cost. Always re-ingest by deleting specific rows from <code>ingestion_state</code> AND zeroing <code>raw_text</code> for the affected docs only.</div>
+        </article>
+
+        <!-- STEP 4 -->
+        <article class="step-deep" id="pb-4">
+          <h3><span class="badge">04</span>Replace document cracking</h3>
+          <p class="lede"><strong>Goal:</strong> extract text from PDFs, Office docs, scanned images. Equivalent of the built-in cracking skill in AI Search.</p>
+
+          <h4>Provision Document Intelligence</h4>
+          <div class="code-block">
+            <div class="code-header"><span>docai.sh</span><span class="lang">bash</span></div>
+<pre><code class="language-bash">az cognitiveservices account create \
+  -g $RG -n $DOCAI -l $LOC \
+  --kind FormRecognizer --sku S0 \
+  --custom-domain $DOCAI \
+  --assign-identity
+</code></pre>
+          </div>
+
+          <h4>Cracker function (drains <code>raw_text IS NULL</code> queue)</h4>
+          <div class="code-block">
+            <div class="code-header"><span>crack.py</span><span class="lang">python</span></div>
+<pre><code class="language-python">from azure.ai.documentintelligence import DocumentIntelligenceClient
+from azure.identity import DefaultAzureCredential
+import pyodbc, os
+
+cred = DefaultAzureCredential()
+di = DocumentIntelligenceClient(
+    endpoint=os.environ["DOCAI_ENDPOINT"], credential=cred)
+
+cn = pyodbc.connect(os.environ["SQL_CONN"], autocommit=False)
+cur = cn.cursor()
+cur.execute("""
+  SELECT TOP 50 doc_id, source_uri
+  FROM search.documents
+  WHERE raw_text IS NULL
+  ORDER BY modified_at
+""")
+rows = cur.fetchall()
+
+for doc_id, uri in rows:
+    poller = di.begin_analyze_document(
+        "prebuilt-layout", AnalyzeDocumentRequest(url_source=uri))
+    result = poller.result()
+    text = "\n\n".join(p.content for p in result.paragraphs)
+    cur.execute("UPDATE search.documents SET raw_text = ? WHERE doc_id = ?",
+                text, doc_id)
+cn.commit()
+print(f"Cracked {len(rows)} docs")
+</code></pre>
+          </div>
+
+          <h4>Sample execution</h4>
+          <div class="sample-output">$ python crack.py
+Cracked 50 docs
+$ python crack.py
+Cracked 50 docs
+$ python crack.py
+Cracked 37 docs</div>
+
+          <div class="pitfall"><strong>Pitfall:</strong> <code>prebuilt-layout</code> costs ~$10/1K pages. For pure-text PDFs use <code>prebuilt-read</code> (~$1.50/1K). Profile your corpus first — running layout on a 1M-page corpus = $10K just to crack.</div>
+        </article>
+
+        <!-- STEP 5 -->
+        <article class="step-deep" id="pb-5">
+          <h3><span class="badge">05</span>Replace the Text Split skill — chunking</h3>
+          <p class="lede"><strong>Goal:</strong> split each document's <code>raw_text</code> into overlapping chunks that fit your embedding model's token window, persisted as rows in <code>search.chunks</code>.</p>
+
+          <div class="code-block">
+            <div class="code-header"><span>chunk.py</span><span class="lang">python</span></div>
+<pre><code class="language-python">from langchain.text_splitter import RecursiveCharacterTextSplitter
+import pyodbc, tiktoken, os
+
+splitter = RecursiveCharacterTextSplitter(
+    chunk_size=800,           # tokens
+    chunk_overlap=120,
+    length_function=lambda s: len(tiktoken.get_encoding("cl100k_base").encode(s)),
+    separators=["\n\n", "\n", ". ", " ", ""])
+
+cn = pyodbc.connect(os.environ["SQL_CONN"], autocommit=False)
+cur = cn.cursor()
+
+# Docs that have text but no chunks yet
+cur.execute("""
+  SELECT d.doc_id, d.raw_text
+  FROM search.documents d
+  WHERE d.raw_text IS NOT NULL
+    AND NOT EXISTS (SELECT 1 FROM search.chunks c WHERE c.doc_id = d.doc_id)
+""")
+for doc_id, text in cur.fetchall():
+    for i, chunk in enumerate(splitter.split_text(text)):
+        cur.execute("""
+          INSERT INTO search.chunks (doc_id, ordinal, text, token_count)
+          VALUES (?, ?, ?, ?)""",
+          doc_id, i, chunk,
+          len(tiktoken.get_encoding("cl100k_base").encode(chunk)))
+cn.commit()
+</code></pre>
+          </div>
+
+          <h4>Sample row after run</h4>
+          <div class="sample-output">chunk_id  doc_id        ordinal  token_count  text
+--------  ------------  -------  -----------  --------------------------------------
+1         a2f9...c1     0        742          "Members enrolled in HMO plans must..."
+2         a2f9...c1     1        788          "...selection of primary care provider..."
+3         a2f9...c1     2        611          "...annual deductibles apply to..."</div>
+
+          <div class="pitfall"><strong>Pitfall:</strong> chunking on raw character count instead of tokens means ~30% of your chunks will exceed the embedding model's 8 191 token window and silently truncate. Always tokenize.</div>
+        </article>
+
+        <!-- STEP 6 -->
+        <article class="step-deep" id="pb-6">
+          <h3><span class="badge">06</span>Replace integrated vectorization — embeddings</h3>
+          <p class="lede"><strong>Goal:</strong> embed every <code>chunks.text</code> with Azure OpenAI and store the vector. AI Search calls AOAI for you; here you own batching, retries, throttling.</p>
+
+          <h4>Option A — external batcher (preferred for throughput)</h4>
+          <div class="code-block">
+            <div class="code-header"><span>embed.py</span><span class="lang">python</span></div>
+<pre><code class="language-python">from openai import AzureOpenAI
+from azure.identity import DefaultAzureCredential, get_bearer_token_provider
+import pyodbc, os, struct
+
+cred = DefaultAzureCredential()
+token = get_bearer_token_provider(cred, "https://cognitiveservices.azure.com/.default")
+client = AzureOpenAI(
+    azure_endpoint=os.environ["AOAI_ENDPOINT"],
+    azure_ad_token_provider=token,
+    api_version="2024-10-21")
+MODEL = "text-embedding-3-small"   # 1536 dims, fits in VECTOR(1536)
+
+cn = pyodbc.connect(os.environ["SQL_CONN"], autocommit=False)
+cur = cn.cursor()
+
+BATCH = 64
+while True:
+    cur.execute("""
+      SELECT TOP (?) chunk_id, text
+      FROM search.chunks WHERE embedding IS NULL ORDER BY chunk_id
+    """, BATCH)
+    rows = cur.fetchall()
+    if not rows: break
+
+    resp = client.embeddings.create(model=MODEL, input=[r.text for r in rows])
+    for r, e in zip(rows, resp.data):
+        # SQL Server accepts vector literal as JSON array string
+        vec_json = "[" + ",".join(f"{v:.6f}" for v in e.embedding) + "]"
+        cur.execute("""
+          UPDATE search.chunks
+          SET embedding = CAST(? AS VECTOR(1536)),
+              embedding_model = ?
+          WHERE chunk_id = ?
+        """, vec_json, MODEL, r.chunk_id)
+    cn.commit()
+    print(f"Embedded batch of {len(rows)}")
+</code></pre>
+          </div>
+
+          <h4>Option B — in-database via <code>sp_invoke_external_rest_endpoint</code></h4>
+          <div class="code-block">
+            <div class="code-header"><span>embed_in_db.sql</span><span class="lang">sql</span></div>
+<pre><code class="language-sql">-- One-time: managed identity + scoped credential to AOAI
+CREATE DATABASE SCOPED CREDENTIAL AOAICred
+WITH IDENTITY = 'Managed Identity';
+
+CREATE OR ALTER PROCEDURE search.embed_chunk @chunk_id BIGINT
+AS
+BEGIN
+  DECLARE @text NVARCHAR(MAX), @payload NVARCHAR(MAX), @resp NVARCHAR(MAX);
+  SELECT @text = text FROM search.chunks WHERE chunk_id = @chunk_id;
+
+  SET @payload = JSON_OBJECT('input': @text, 'model': 'text-embedding-3-small');
+
+  EXEC sp_invoke_external_rest_endpoint
+    @url      = 'https://aoai-search-prod.openai.azure.com/openai/deployments/te3s/embeddings?api-version=2024-10-21',
+    @method   = 'POST',
+    @payload  = @payload,
+    @credential = AOAICred,
+    @response = @resp OUTPUT;
+
+  DECLARE @vec NVARCHAR(MAX) =
+    (SELECT value FROM OPENJSON(@resp, '$.result.data[0].embedding'));
+
+  UPDATE search.chunks
+    SET embedding = CAST(@vec AS VECTOR(1536)),
+        embedding_model = 'text-embedding-3-small'
+    WHERE chunk_id = @chunk_id;
+END
+</code></pre>
+          </div>
+
+          <h4>Sample execution</h4>
+          <div class="sample-output">$ python embed.py
+Embedded batch of 64
+Embedded batch of 64
+Embedded batch of 64
+...
+Embedded batch of 17</div>
+
+          <div class="verify"><strong>Validation:</strong> <code>SELECT VECTOR_DIMS(embedding) FROM search.chunks WHERE chunk_id = 1;</code> returns <strong>1536</strong>.</div>
+          <div class="pitfall"><strong>Pitfall A:</strong> Option B (per-row stored proc) hits AOAI request-per-minute quotas FAST at scale. Use it only for trickle re-embeds; do bulk in Option A.</div>
+          <div class="pitfall"><strong>Pitfall B:</strong> if you re-embed with a new model, set <code>embedding_model</code> too and consider re-indexing — DiskANN's centroids are model-specific.</div>
+        </article>
+
+        <!-- STEP 7 -->
+        <article class="step-deep" id="pb-7">
+          <h3><span class="badge">07</span>Build the vector index</h3>
+          <p class="lede"><strong>Goal:</strong> create the DiskANN ANN index so KNN search is sub-second on millions of vectors. Without it, you're doing brute-force scans.</p>
+
+          <div class="code-block">
+            <div class="code-header"><span>vector-index.sql</span><span class="lang">sql</span></div>
+<pre><code class="language-sql">-- Confirm preview features are on (Step 1)
+SELECT value FROM sys.database_scoped_configurations WHERE name = 'PREVIEW_FEATURES';
+
+CREATE VECTOR INDEX IX_chunks_emb_diskann
+ON search.chunks(embedding)
+WITH (
+  METRIC = 'cosine',
+  TYPE   = 'diskann',
+  MAXDOP = 8
+);
+
+-- Track build progress (build is async on Hyperscale)
+SELECT name, type_desc, is_disabled, has_filter
+FROM sys.indexes WHERE object_id = OBJECT_ID('search.chunks');
+
+SELECT * FROM sys.dm_db_xtp_hash_index_stats; -- runtime stats
+</code></pre>
+          </div>
+
+          <h4>Sample execution timeline</h4>
+          <div class="sample-output">2026-05-21 03:00:00  CREATE VECTOR INDEX submitted (~ 4.2M rows)
+2026-05-21 03:00:01  command returns immediately
+2026-05-21 03:11:37  index online — sys.indexes.is_disabled = 0
+total cost: 11m 36s wall, ~22 vCore-minutes</div>
+
+          <div class="verify"><strong>Smoke test:</strong>
+            <div class="code-block" style="margin-top:6px;">
+              <div class="code-header"><span>knn-smoke.sql</span><span class="lang">sql</span></div>
+<pre><code class="language-sql">DECLARE @q VECTOR(1536) = (
+  SELECT embedding FROM search.chunks WHERE chunk_id = 1);
+
+SELECT TOP 5 chunk_id,
+       VECTOR_DISTANCE('cosine', embedding, @q) AS dist
+FROM search.chunks
+ORDER BY VECTOR_DISTANCE('cosine', embedding, @q);</code></pre>
+            </div>
+            Top-1 distance should be <code>0.0</code> (the query itself); top-5 returned in &lt; 100ms on a warm cache.
+          </div>
+          <div class="pitfall"><strong>Pitfall:</strong> DiskANN at GA is <strong>single-replica</strong> and is dropped + rebuilt on full rebuilds — no online maintenance. Plan a maintenance window for any large delete-heavy rebuild. Also: it's still <strong>public preview</strong> in May 2026; do not rely on its SLA without compensating controls.</div>
+        </article>
+
+        <!-- STEP 8 -->
+        <article class="step-deep" id="pb-8">
+          <h3><span class="badge">08</span>Re-implement hybrid retrieval with RRF</h3>
+          <p class="lede"><strong>Goal:</strong> a single stored proc that does <em>full-text + vector KNN + Reciprocal Rank Fusion</em>, returning a ranked top-K. This is what AI Search gives you for free with <code>queryType=semantic, vectorQueries=[...]</code>.</p>
+
+          <div class="code-block">
+            <div class="code-header"><span>hybrid_search.sql</span><span class="lang">sql</span></div>
+<pre><code class="language-sql">CREATE OR ALTER PROCEDURE search.hybrid_search
+  @query_text  NVARCHAR(1000),
+  @query_vec   VECTOR(1536),
+  @top_k       INT = 50,
+  @rrf_k       INT = 60        -- RRF smoothing constant; 60 is the canonical default
+AS
+BEGIN
+  ;WITH
+  lex AS (
+    SELECT TOP (@top_k) c.chunk_id,
+           ROW_NUMBER() OVER (ORDER BY KEY_TBL.RANK DESC) AS r
+    FROM search.chunks c
+    INNER JOIN CONTAINSTABLE(search.chunks, text, @query_text, @top_k) AS KEY_TBL
+      ON c.chunk_id = KEY_TBL.[KEY]
+  ),
+  vec AS (
+    SELECT TOP (@top_k) chunk_id,
+           ROW_NUMBER() OVER (
+             ORDER BY VECTOR_DISTANCE('cosine', embedding, @query_vec)) AS r
+    FROM search.chunks
+    WHERE embedding IS NOT NULL
+  ),
+  fused AS (
+    SELECT chunk_id, SUM(1.0 / (@rrf_k + r)) AS rrf_score
+    FROM (SELECT * FROM lex UNION ALL SELECT * FROM vec) u
+    GROUP BY chunk_id
+  )
+  SELECT TOP (@top_k)
+         f.chunk_id, f.rrf_score,
+         c.text, d.title, d.source_uri, d.author, d.modified_at
+  FROM fused f
+  JOIN search.chunks   c ON c.chunk_id = f.chunk_id
+  JOIN search.documents d ON d.doc_id = c.doc_id
+  ORDER BY f.rrf_score DESC;
+END
+</code></pre>
+          </div>
+
+          <h4>Sample call</h4>
+          <div class="code-block">
+            <div class="code-header"><span>call-hybrid.sql</span><span class="lang">sql</span></div>
+<pre><code class="language-sql">DECLARE @qv VECTOR(1536) = /* embed("annual deductible for HMO") via Step 6 */ ...;
+EXEC search.hybrid_search
+  @query_text = N'annual deductible HMO',
+  @query_vec  = @qv,
+  @top_k      = 25;</code></pre>
+          </div>
+
+          <h4>Sample output</h4>
+          <div class="sample-output">chunk_id  rrf_score   title                              source_uri
+--------  ----------  ---------------------------------  -----------------------------
+8842      0.03145     Member Benefits 2026               .../mbk-2026.pdf
+8841      0.02877     Member Benefits 2026               .../mbk-2026.pdf
+14093     0.02560     HMO Plan Summary                   .../hmo-summary.pdf
+...</div>
+
+          <div class="pitfall"><strong>Pitfall:</strong> RRF requires both ranked lists to use the SAME row identifier. If you join on <code>doc_id</code> in one branch and <code>chunk_id</code> in the other, fusion is meaningless. Fix scope first.</div>
+        </article>
+
+        <!-- STEP 9 -->
+        <article class="step-deep" id="pb-9">
+          <h3><span class="badge">09</span>Build a semantic re-ranker — the biggest gap</h3>
+          <p class="lede"><strong>Goal:</strong> rescore the top-50 from Step 8 with a cross-encoder to get AI Search-quality semantic ranking. Highest cost, biggest quality lift.</p>
+
+          <h4>Option A — self-hosted cross-encoder (recommended for cost)</h4>
+          <div class="code-block">
+            <div class="code-header"><span>reranker_app.py</span><span class="lang">python</span></div>
+<pre><code class="language-python">from fastapi import FastAPI
+from sentence_transformers import CrossEncoder
+from pydantic import BaseModel
+
+model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-12-v2", device="cuda")
+app = FastAPI()
+
+class Req(BaseModel):
+    query: str
+    passages: list[str]
+
+@app.post("/rerank")
+def rerank(r: Req):
+    scores = model.predict([(r.query, p) for p in r.passages]).tolist()
+    order = sorted(range(len(r.passages)), key=lambda i: -scores[i])
+    return {"order": order, "scores": [scores[i] for i in order]}
+</code></pre>
+          </div>
+
+          <div class="code-block">
+            <div class="code-header"><span>deploy.sh</span><span class="lang">bash</span></div>
+<pre><code class="language-bash">az containerapp create \
+  -g $RG -n reranker \
+  --environment search-env \
+  --image myacr.azurecr.io/reranker:1.0 \
+  --workload-profile-name gpu-nc24 \
+  --min-replicas 1 --max-replicas 4 \
+  --ingress internal --target-port 8000
+</code></pre>
+          </div>
+
+          <h4>Option B — GPT-4o-mini scorer (higher quality, ~20× cost)</h4>
+          <div class="code-block">
+            <div class="code-header"><span>gpt_rerank.py</span><span class="lang">python</span></div>
+<pre><code class="language-python">prompt = """You are a relevance grader. Given a query and a passage, return
+an integer 0..10 for how relevant the passage is. Output only the integer."""
+
+scores = []
+for p in passages:
+    r = client.chat.completions.create(model="gpt-4o-mini",
+        messages=[{"role":"system","content":prompt},
+                  {"role":"user","content":f"QUERY: {query}\nPASSAGE: {p}"}],
+        max_tokens=2, temperature=0)
+    scores.append(int(r.choices[0].message.content.strip()))
+</code></pre>
+          </div>
+
+          <h4>Wire into the app tier</h4>
+          <div class="code-block">
+            <div class="code-header"><span>search_api.py</span><span class="lang">python</span></div>
+<pre><code class="language-python">def search(query: str, top_k: int = 10):
+    qv = embed(query)
+    candidates = sql.exec("EXEC search.hybrid_search ?, ?, 50", query, qv)
+    rerank = httpx.post("https://reranker/rerank",
+        json={"query": query, "passages": [c.text for c in candidates]}).json()
+    return [candidates[i] for i in rerank["order"][:top_k]]
+</code></pre>
+          </div>
+
+          <div class="pitfall"><strong>Pitfall:</strong> running the cross-encoder on the FULL result set instead of top-50 destroys latency. The whole point is "cheap recall (hybrid) + expensive precision (reranker on 50 candidates)."</div>
+        </article>
+
+        <!-- STEP 10 -->
+        <article class="step-deep" id="pb-10">
+          <h3><span class="badge">10</span>Recreate scoring profiles and synonyms</h3>
+          <p class="lede"><strong>Goal:</strong> field-weighting, freshness boosts, tag boosts, and synonym expansion — features AI Search exposes as JSON config.</p>
+
+          <h4>Scoring expression in T-SQL</h4>
+          <div class="code-block">
+            <div class="code-header"><span>scoring-profile.sql</span><span class="lang">sql</span></div>
+<pre><code class="language-sql">-- Compose a final score from RRF + freshness boost + tag boost
+SELECT TOP 25
+  f.chunk_id, f.rrf_score,
+  freshness_boost = CAST(
+    1.0 / (1 + DATEDIFF(DAY, d.modified_at, SYSUTCDATETIME()) / 30.0) AS FLOAT),
+  tag_boost = CASE
+    WHEN JSON_VALUE(d.tags, '$[0]') IN ('benefits','formulary') THEN 1.3
+    ELSE 1.0 END,
+  final_score = f.rrf_score
+              * (1 + 0.4 * (1.0 / (1 + DATEDIFF(DAY, d.modified_at, SYSUTCDATETIME()) / 30.0)))
+              * (CASE WHEN JSON_VALUE(d.tags,'$[0]') IN ('benefits','formulary')
+                      THEN 1.3 ELSE 1.0 END)
+FROM fused f
+JOIN search.documents d ON ...
+ORDER BY final_score DESC;
+</code></pre>
+          </div>
+
+          <h4>Synonyms — FTS thesaurus</h4>
+          <div class="code-block">
+            <div class="code-header"><span>tsenu.xml</span><span class="lang">xml</span></div>
+<pre><code class="language-xml">&lt;XML ID="Microsoft Search Thesaurus"&gt;
+  &lt;thesaurus xmlns="x-schema:tsSchema.xml"&gt;
+    &lt;diacritics_sensitive&gt;0&lt;/diacritics_sensitive&gt;
+    &lt;expansion&gt;
+      &lt;sub&gt;HMO&lt;/sub&gt;&lt;sub&gt;Health Maintenance Organization&lt;/sub&gt;
+    &lt;/expansion&gt;
+    &lt;expansion&gt;
+      &lt;sub&gt;PCP&lt;/sub&gt;&lt;sub&gt;primary care provider&lt;/sub&gt;&lt;sub&gt;primary care physician&lt;/sub&gt;
+    &lt;/expansion&gt;
+  &lt;/thesaurus&gt;
+&lt;/XML&gt;
+</code></pre>
+          </div>
+
+          <div class="code-block">
+            <div class="code-header"><span>load-thesaurus.sql</span><span class="lang">sql</span></div>
+<pre><code class="language-sql">EXEC sys.sp_fulltext_load_thesaurus_file 1033, @LoadOnly = 0;
+-- Re-issue queries; FORMSOF(THESAURUS, 'HMO') now also matches 'Health Maintenance Organization'</code></pre>
+          </div>
+        </article>
+
+        <!-- STEP 11 -->
+        <article class="step-deep" id="pb-11">
+          <h3><span class="badge">11</span>Recreate facets, suggesters, and autocomplete</h3>
+          <p class="lede"><strong>Goal:</strong> the "filter pills" + autocomplete dropdown UX. AI Search ships these as first-class endpoints; you build them.</p>
+
+          <h4>Facets</h4>
+          <div class="code-block">
+            <div class="code-header"><span>facets.sql</span><span class="lang">sql</span></div>
+<pre><code class="language-sql">-- Counts by author and language, scoped to a result set CTE
+WITH hits AS (
+  SELECT d.doc_id, d.author, d.language
+  FROM search.documents d JOIN search.chunks c ON c.doc_id = d.doc_id
+  WHERE c.chunk_id IN (/* result chunk_ids from Step 8 */)
+)
+SELECT 'author' AS facet, author AS value, COUNT(*) AS cnt
+FROM hits GROUP BY author
+UNION ALL
+SELECT 'language', language, COUNT(*) FROM hits GROUP BY language
+ORDER BY facet, cnt DESC;
+</code></pre>
+          </div>
+
+          <h4>Suggester / autocomplete</h4>
+          <div class="code-block">
+            <div class="code-header"><span>suggester.sql</span><span class="lang">sql</span></div>
+<pre><code class="language-sql">-- Materialized view of distinct title prefixes
+CREATE TABLE search.title_prefixes (prefix NVARCHAR(64) PRIMARY KEY);
+INSERT INTO search.title_prefixes
+SELECT DISTINCT LOWER(LEFT(title, n))
+FROM search.documents
+CROSS APPLY (VALUES (3),(5),(8),(12),(20)) AS p(n)
+WHERE title IS NOT NULL;
+
+-- Autocomplete query
+SELECT TOP 10 prefix
+FROM search.title_prefixes
+WHERE prefix LIKE @typed + '%'
+ORDER BY prefix;
+</code></pre>
+          </div>
+
+          <div class="pitfall"><strong>Pitfall:</strong> querying facets against the full <code>chunks</code> table for every search request is slow. Always scope to the candidate set returned by Step 8.</div>
+        </article>
+
+        <!-- STEP 12 -->
+        <article class="step-deep" id="pb-12">
+          <h3><span class="badge">12</span>Wire up observability &amp; query telemetry</h3>
+          <p class="lede"><strong>Goal:</strong> per-query latency, candidate counts, click-through, and a relevance dashboard. AI Search Insights is gone — you stitch it together.</p>
+
+          <h4>Enable platform diagnostics</h4>
+          <div class="code-block">
+            <div class="code-header"><span>diag.sh</span><span class="lang">bash</span></div>
+<pre><code class="language-bash">LAW=law-search-prod
+az monitor log-analytics workspace create -g $RG -n $LAW
+
+az monitor diagnostic-settings create \
+  --resource $(az sql db show -g $RG -s $SRV -n $DB --query id -o tsv) \
+  --name diag-all \
+  --workspace $LAW \
+  --logs '[{"category":"QueryStoreRuntimeStatistics","enabled":true},
+           {"category":"AutomaticTuning","enabled":true},
+           {"category":"Errors","enabled":true}]' \
+  --metrics '[{"category":"Basic","enabled":true}]'
+</code></pre>
+          </div>
+
+          <h4>App-tier query log table</h4>
+          <div class="code-block">
+            <div class="code-header"><span>telemetry.sql</span><span class="lang">sql</span></div>
+<pre><code class="language-sql">CREATE TABLE search.query_log (
+  query_id      UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+  ts            DATETIME2(3) NOT NULL DEFAULT SYSUTCDATETIME(),
+  user_id       NVARCHAR(128),
+  query_text    NVARCHAR(1000),
+  candidates    INT,
+  top_chunk_id  BIGINT,
+  rrf_top       FLOAT,
+  rerank_top    FLOAT,
+  total_ms      INT,
+  embed_ms      INT,
+  hybrid_ms     INT,
+  rerank_ms     INT,
+  clicked_at    DATETIME2(3) NULL,
+  clicked_rank  INT NULL
+);
+</code></pre>
+          </div>
+
+          <h4>Relevance dashboard (KQL on Log Analytics)</h4>
+          <div class="code-block">
+            <div class="code-header"><span>relevance.kql</span><span class="lang">sql</span></div>
+<pre><code class="language-sql">// p50/p95 latency by hour
+AppRequests
+| where Name == "POST /search"
+| summarize p50=percentile(DurationMs,50), p95=percentile(DurationMs,95) by bin(TimeGenerated,1h)
+| render timechart
+
+// CTR at rank 1
+customEvents
+| where name == "search_click"
+| summarize ctr = todouble(countif(toint(customDimensions.clicked_rank)==1))/count()
+            by bin(timestamp,1d)</code></pre>
+          </div>
+        </article>
+
+        <!-- STEP 13 -->
+        <article class="step-deep" id="pb-13">
+          <h3><span class="badge">13</span>Security, network, and identity</h3>
+          <p class="lede"><strong>Goal:</strong> the controls a regulated workload (HIPAA / HITRUST / FedRAMP) needs — TDE+CMK, private endpoint, Entra-only, RLS, column-level encryption.</p>
+
+          <h4>TDE with customer-managed key</h4>
+          <div class="code-block">
+            <div class="code-header"><span>cmk.sh</span><span class="lang">bash</span></div>
+<pre><code class="language-bash">KV=kv-search-prod
+KEY=cmk-search-2026
+
+az keyvault create -g $RG -n $KV -l $LOC --enable-purge-protection true
+az keyvault key create --vault-name $KV -n $KEY --kty RSA --size 3072
+
+# Grant the SQL server's managed identity wrap/unwrap/get
+az keyvault set-policy -n $KV \
+  --object-id $(az sql server show -g $RG -n $SRV --query identity.principalId -o tsv) \
+  --key-permissions wrapKey unwrapKey get
+
+KEY_URI=$(az keyvault key show --vault-name $KV -n $KEY --query key.kid -o tsv)
+
+az sql server tde-key set -g $RG -s $SRV --server-key-type AzureKeyVault \
+  --kid $KEY_URI
+
+az sql db tde set -g $RG -s $SRV -n $DB --status Enabled
+</code></pre>
+          </div>
+
+          <h4>Private endpoint</h4>
+          <div class="code-block">
+            <div class="code-header"><span>pe.sh</span><span class="lang">bash</span></div>
+<pre><code class="language-bash">az network private-endpoint create -g $RG -n pe-sql-search \
+  --vnet-name vnet-search --subnet snet-data \
+  --private-connection-resource-id $(az sql server show -g $RG -n $SRV --query id -o tsv) \
+  --group-id sqlServer \
+  --connection-name pe-sql-search-conn
+
+az sql server update -g $RG -n $SRV --enable-public-network false
+</code></pre>
+          </div>
+
+          <h4>Row-Level Security (multi-tenant pattern)</h4>
+          <div class="code-block">
+            <div class="code-header"><span>rls.sql</span><span class="lang">sql</span></div>
+<pre><code class="language-sql">CREATE SCHEMA sec;
+GO
+CREATE FUNCTION sec.fn_tenant_predicate(@tenant NVARCHAR(64))
+RETURNS TABLE WITH SCHEMABINDING AS
+RETURN SELECT 1 AS ok
+WHERE @tenant = CAST(SESSION_CONTEXT(N'tenant_id') AS NVARCHAR(64));
+GO
+
+ALTER TABLE search.documents ADD tenant_id NVARCHAR(64) NOT NULL DEFAULT 'public';
+
+CREATE SECURITY POLICY sec.documents_filter
+ADD FILTER PREDICATE sec.fn_tenant_predicate(tenant_id) ON search.documents,
+ADD BLOCK  PREDICATE sec.fn_tenant_predicate(tenant_id) ON search.documents
+WITH (STATE = ON);
+</code></pre>
+          </div>
+
+          <h4>App sets the tenant before every query</h4>
+          <div class="code-block">
+            <div class="code-header"><span>app.py</span><span class="lang">python</span></div>
+<pre><code class="language-python">cur.execute("EXEC sp_set_session_context @key=N'tenant_id', @value=?", tenant_id)
+# All subsequent queries on search.documents are filtered automatically</code></pre>
+          </div>
+        </article>
+
+        <!-- STEP 14 -->
+        <article class="step-deep" id="pb-14">
+          <h3><span class="badge">14</span>If you used agentic retrieval — rebuild it</h3>
+          <p class="lede"><strong>Goal:</strong> multi-turn query planning + reasoning + retrieval. AI Search calls this "agentic retrieval"; you rebuild it in your app tier with an LLM orchestrator.</p>
+
+          <div class="code-block">
+            <div class="code-header"><span>agentic.py</span><span class="lang">python</span></div>
+<pre><code class="language-python">from semantic_kernel import Kernel
+from semantic_kernel.connectors.ai.open_ai import AzureChatCompletion
+from semantic_kernel.functions import kernel_function
+
+kernel = Kernel()
+kernel.add_service(AzureChatCompletion(deployment_name="gpt-4o",
+    endpoint=os.environ["AOAI_ENDPOINT"], ad_token_provider=token))
+
+class SearchPlugin:
+    @kernel_function(description="Hybrid + rerank search against SQL")
+    def search(self, query: str, top_k: int = 10) -> str:
+        return json.dumps(do_hybrid_search(query, top_k))  # wraps Step 9
+
+kernel.add_plugin(SearchPlugin(), "kb")
+
+PLANNER = """You are a healthcare claims expert. Decompose the user's question
+into 1-3 search sub-queries against the knowledge base, run them via the
+kb.search function, then synthesize a grounded answer with citations."""
+
+result = await kernel.invoke_prompt(
+    prompt=PLANNER + "\nUser: " + user_q,
+    arguments=KernelArguments(settings={"function_choice_behavior": "auto"}))
+</code></pre>
+          </div>
+
+          <h4>Sample run</h4>
+          <div class="sample-output">User: "Am I covered for outpatient PT and what's the copay for an HMO member?"
+
+Planner -> 2 sub-queries:
+  1. "outpatient physical therapy coverage HMO"
+  2. "HMO copay outpatient therapy"
+
+Tool calls:
+  kb.search("outpatient physical therapy coverage HMO", top_k=5)
+  kb.search("HMO copay outpatient therapy", top_k=5)
+
+Final answer (grounded, with [doc:mbk-2026.pdf §4.3] citations) returned in 4.1s</div>
+
+          <div class="pitfall"><strong>Pitfall:</strong> let the planner call <code>kb.search</code> at most 3 times per turn. Without a hard cap, GPT will fan out to 10+ sub-queries and blow your retrieval cost budget.</div>
+        </article>
+
+        <!-- STEP 15 -->
+        <article class="step-deep" id="pb-15">
+          <h3><span class="badge">15</span>Cut over with shadow traffic</h3>
+          <p class="lede"><strong>Goal:</strong> prove the SQL-based system meets or beats AI Search on a representative query log <em>before</em> turning users over. NDCG@10 and MRR are the standard metrics.</p>
+
+          <h4>Shadow harness</h4>
+          <div class="code-block">
+            <div class="code-header"><span>shadow.py</span><span class="lang">python</span></div>
+<pre><code class="language-python">import math, json, statistics
+from azure.search.documents import SearchClient
+from azure.identity import DefaultAzureCredential
+
+ais = SearchClient(endpoint=AIS_ENDPOINT, index_name="prod-index",
+                   credential=DefaultAzureCredential())
+
+def ndcg(judged, returned, k=10):
+    dcg = sum(judged.get(d, 0) / math.log2(i + 2) for i, d in enumerate(returned[:k]))
+    ideal = sorted(judged.values(), reverse=True)[:k]
+    idcg = sum(g / math.log2(i + 2) for i, g in enumerate(ideal))
+    return dcg / idcg if idcg else 0.0
+
+with open("query_judgments.jsonl") as f:
+    rows = [json.loads(l) for l in f]
+
+ais_ndcg, sql_ndcg = [], []
+for r in rows:
+    q, judged = r["query"], r["judgments"]   # {doc_id: rel (0-3)}
+    ais_top = [d["doc_id"] for d in ais.search(q, top=10)]
+    sql_top = [d["doc_id"] for d in do_hybrid_search(q, top_k=10)]
+    ais_ndcg.append(ndcg(judged, ais_top))
+    sql_ndcg.append(ndcg(judged, sql_top))
+
+print(f"AI Search  NDCG@10: {statistics.mean(ais_ndcg):.4f}")
+print(f"SQL Hybrid NDCG@10: {statistics.mean(sql_ndcg):.4f}")
+print(f"Delta: {(statistics.mean(sql_ndcg) - statistics.mean(ais_ndcg)) * 100:+.2f} pts")
+</code></pre>
+          </div>
+
+          <h4>Sample execution</h4>
+          <div class="sample-output">$ python shadow.py
+Evaluating 1,200 queries...
+AI Search  NDCG@10: 0.7421
+SQL Hybrid NDCG@10: 0.7388
+Delta: -0.33 pts
+
+Verdict: within 0.5 pts -> GO for cutover</div>
+
+          <h4>Cutover plan</h4>
+          <ol class="substeps">
+            <li><strong>Day -14:</strong> deploy SQL stack to prod, dual-write ingestion (writes go to BOTH AI Search and SQL).</li>
+            <li><strong>Day -7:</strong> dual-read with shadow eval (above) running on every real query in the background; log deltas.</li>
+            <li><strong>Day 0:</strong> flip read traffic to SQL via feature flag (1% → 10% → 50% → 100% over 48h).</li>
+            <li><strong>Day +7:</strong> stop dual-write; decommission the AI Search service.</li>
+          </ol>
+
+          <div class="verify"><strong>Go / no-go gate:</strong> SQL NDCG@10 within 0.5 pts of AI Search AND p95 latency &lt; AI Search p95 + 100ms. Anything worse, do not cut over — invest more in the re-ranker (Step 9).</div>
+        </article>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== TAB 5: PRICING REF ========== -->
   <section id="tab-pricing" class="tab-panel">
     <div class="card">
       <h2>Azure AI Search — per Search Unit (East US, May 2026)</h2>
@@ -871,9 +2024,25 @@
 <script>
 function toggleTheme() {
   const cur = document.documentElement.getAttribute("data-theme");
-  document.documentElement.setAttribute("data-theme", cur === "dark" ? "light" : "dark");
+  const next = cur === "dark" ? "light" : "dark";
+  document.documentElement.setAttribute("data-theme", next);
+  const hl = document.getElementById("hljs-theme");
+  if (hl) {
+    hl.href = next === "dark"
+      ? "https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github-dark.min.css"
+      : "https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github.min.css";
+  }
   refresh();
 }
+
+// Apply highlight.js to all code blocks once the library finishes loading
+window.addEventListener("load", () => {
+  if (window.hljs) {
+    document.querySelectorAll("pre code").forEach(el => {
+      try { window.hljs.highlightElement(el); } catch (e) {}
+    });
+  }
+});
 
 // Tab switching
 document.querySelectorAll(".tab").forEach(btn => {
