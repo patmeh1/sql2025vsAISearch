@@ -1,0 +1,1108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>
+  (() => {
+    const param = new URLSearchParams(window.location.search).get("clawpilotTheme");
+    const theme = param || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    document.documentElement.setAttribute("data-theme", theme);
+  })();
+</script>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Azure AI Search vs SQL Server 2025 Hyperscale — Cost & Capability Crossover</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    color-scheme: light;
+    --cp-bg: #f7f4ef;
+    --cp-bg-elevated: #fcfbf8;
+    --cp-surface: #ffffff;
+    --cp-surface-soft: #f5f5f5;
+    --cp-border: #dedede;
+    --cp-border-strong: #919191;
+    --cp-text: #242424;
+    --cp-text-muted: #5c5c5c;
+    --cp-text-soft: #6f6f6f;
+    --cp-accent: #b11f4b;
+    --cp-accent-hover: #9a1a41;
+    --cp-accent-soft: rgba(177, 31, 75, 0.08);
+    --cp-accent-fg: #ffffff;
+    --cp-success: #16a34a;
+    --cp-danger: #dc2626;
+    --cp-warning: #f59e0b;
+    --cp-link: #0078d4;
+    --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.12);
+    --cp-overlay: rgba(255, 255, 255, 0.8);
+    --cp-panel: rgba(255, 255, 255, 0.86);
+    --cp-panel-strong: rgba(255, 255, 255, 0.96);
+    --cp-sheen: rgba(255, 255, 255, 0.55);
+    --cp-highlight: rgba(177, 31, 75, 0.12);
+  }
+  html[data-theme="dark"] {
+    color-scheme: dark;
+    --cp-bg: #3d3b3a;
+    --cp-bg-elevated: #343231;
+    --cp-surface: #292929;
+    --cp-surface-soft: #2e2e2e;
+    --cp-border: #474747;
+    --cp-border-strong: #5f5f5f;
+    --cp-text: #dedede;
+    --cp-text-muted: #919191;
+    --cp-text-soft: #b0b0b0;
+    --cp-accent: #fd8ea1;
+    --cp-accent-hover: #fb7b91;
+    --cp-accent-soft: rgba(253, 142, 161, 0.14);
+    --cp-accent-fg: #1a1a1a;
+    --cp-success: #4ade80;
+    --cp-danger: #f87171;
+    --cp-warning: #fbbf24;
+    --cp-link: #4da6ff;
+    --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.32);
+    --cp-overlay: rgba(41, 41, 41, 0.88);
+    --cp-panel: rgba(41, 41, 41, 0.72);
+    --cp-panel-strong: rgba(41, 41, 41, 0.96);
+    --cp-sheen: rgba(255, 255, 255, 0.04);
+    --cp-highlight: rgba(253, 142, 161, 0.12);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: "Segoe UI", Aptos, Calibri, -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--cp-bg);
+    color: var(--cp-text);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  .container {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 32px 24px 64px;
+  }
+  header.page {
+    margin-bottom: 24px;
+  }
+  header.page h1 {
+    font-size: 1.65rem;
+    margin: 0 0 6px;
+    letter-spacing: -0.01em;
+  }
+  header.page p {
+    margin: 0;
+    color: var(--cp-text-muted);
+    font-size: 0.92rem;
+  }
+  .tabs {
+    display: flex;
+    gap: 4px;
+    border-bottom: 1px solid var(--cp-border);
+    margin-bottom: 24px;
+    overflow-x: auto;
+  }
+  .tab {
+    background: transparent;
+    border: none;
+    color: var(--cp-text-muted);
+    padding: 10px 16px;
+    font-family: inherit;
+    font-size: 0.92rem;
+    font-weight: 500;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: color 0.15s, border-color 0.15s;
+    white-space: nowrap;
+  }
+  .tab:hover { color: var(--cp-text); }
+  .tab.active {
+    color: var(--cp-accent);
+    border-bottom-color: var(--cp-accent);
+  }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  .card {
+    background: var(--cp-surface);
+    border: 1px solid var(--cp-border);
+    border-radius: 16px;
+    padding: 20px 22px;
+    box-shadow: 0 0 2px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.14);
+  }
+  .card + .card { margin-top: 16px; }
+  .card h2 {
+    margin: 0 0 14px;
+    font-size: 1.05rem;
+    letter-spacing: -0.005em;
+  }
+  .card h3 {
+    margin: 0 0 8px;
+    font-size: 0.95rem;
+  }
+
+  .grid {
+    display: grid;
+    gap: 16px;
+  }
+  .grid.cols-2 { grid-template-columns: 1fr 1fr; }
+  .grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+  .grid.cols-4 { grid-template-columns: repeat(4, 1fr); }
+  @media (max-width: 900px) {
+    .grid.cols-2, .grid.cols-3, .grid.cols-4 { grid-template-columns: 1fr; }
+  }
+
+  .inputs-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 14px 18px;
+  }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field label {
+    font-size: 0.78rem;
+    color: var(--cp-text-muted);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  .field input, .field select {
+    background: var(--cp-bg-elevated);
+    color: var(--cp-text);
+    border: 1px solid var(--cp-border);
+    border-radius: 0.625rem;
+    padding: 8px 10px;
+    font-family: inherit;
+    font-size: 0.92rem;
+  }
+  .field input:focus, .field select:focus {
+    outline: none;
+    border-color: var(--cp-accent);
+    box-shadow: 0 0 0 3px var(--cp-accent-soft);
+  }
+
+  .stat-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+  }
+  .stat {
+    background: var(--cp-surface-soft);
+    border: 1px solid var(--cp-border);
+    border-radius: 12px;
+    padding: 12px 14px;
+  }
+  .stat .label {
+    font-size: 0.72rem;
+    color: var(--cp-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 4px;
+  }
+  .stat .value {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--cp-text);
+    font-family: Consolas, "Courier New", Courier, monospace;
+  }
+  .stat .sublabel {
+    font-size: 0.78rem;
+    color: var(--cp-text-soft);
+    margin-top: 2px;
+  }
+  .stat.accent .value { color: var(--cp-accent); }
+  .stat.success .value { color: var(--cp-success); }
+  .stat.warning .value { color: var(--cp-warning); }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+  }
+  thead th {
+    text-align: left;
+    background: var(--cp-surface-soft);
+    color: var(--cp-text-muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--cp-border);
+  }
+  tbody td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--cp-border);
+    vertical-align: top;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--cp-surface-soft); }
+  td.num {
+    font-family: Consolas, "Courier New", Courier, monospace;
+    text-align: right;
+  }
+  td .pill {
+    display: inline-block;
+    padding: 2px 8px;
+    font-size: 0.72rem;
+    border-radius: 999px;
+    font-weight: 500;
+  }
+  .pill.green { background: rgba(22, 163, 74, 0.12); color: var(--cp-success); }
+  .pill.red   { background: rgba(220, 38, 38, 0.12); color: var(--cp-danger); }
+  .pill.amber { background: rgba(245, 158, 11, 0.15); color: var(--cp-warning); }
+  .pill.muted { background: var(--cp-surface-soft); color: var(--cp-text-muted); }
+  .pill.accent { background: var(--cp-accent-soft); color: var(--cp-accent); }
+
+  .chart-wrap {
+    position: relative;
+    height: 420px;
+  }
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 8px;
+    font-size: 0.82rem;
+    color: var(--cp-text-muted);
+  }
+  .legend .dot {
+    display: inline-block;
+    width: 10px; height: 10px;
+    border-radius: 2px;
+    margin-right: 6px;
+    vertical-align: middle;
+  }
+
+  .callout {
+    background: var(--cp-accent-soft);
+    border-left: 3px solid var(--cp-accent);
+    padding: 12px 14px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    color: var(--cp-text);
+    margin-top: 14px;
+  }
+  .callout strong { color: var(--cp-accent); }
+
+  ol.steps { counter-reset: step; padding-left: 0; list-style: none; }
+  ol.steps > li {
+    counter-increment: step;
+    position: relative;
+    padding: 14px 14px 14px 56px;
+    margin-bottom: 8px;
+    background: var(--cp-surface);
+    border: 1px solid var(--cp-border);
+    border-radius: 12px;
+  }
+  ol.steps > li::before {
+    content: counter(step);
+    position: absolute;
+    left: 14px;
+    top: 14px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--cp-accent);
+    color: var(--cp-accent-fg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 0.82rem;
+    font-family: Consolas, "Courier New", Courier, monospace;
+  }
+  ol.steps > li .step-title {
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  ol.steps > li .step-body {
+    color: var(--cp-text-muted);
+    font-size: 0.88rem;
+  }
+  ol.steps > li code {
+    background: var(--cp-surface-soft);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.83rem;
+  }
+
+  .footnote {
+    color: var(--cp-text-soft);
+    font-size: 0.78rem;
+    margin-top: 14px;
+    line-height: 1.55;
+  }
+  .footnote a { color: var(--cp-link); text-decoration: none; }
+  .footnote a:hover { text-decoration: underline; }
+
+  details.assumptions {
+    margin-top: 12px;
+    background: var(--cp-surface-soft);
+    border: 1px solid var(--cp-border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 0.85rem;
+    color: var(--cp-text-muted);
+  }
+  details.assumptions summary {
+    cursor: pointer;
+    color: var(--cp-text);
+    font-weight: 500;
+  }
+  details.assumptions ul { margin: 8px 0 0; padding-left: 18px; }
+
+  .theme-toggle {
+    background: var(--cp-surface);
+    border: 1px solid var(--cp-border);
+    color: var(--cp-text);
+    border-radius: 999px;
+    padding: 6px 14px;
+    font-family: inherit;
+    font-size: 0.82rem;
+    cursor: pointer;
+    float: right;
+  }
+  .theme-toggle:hover { background: var(--cp-surface-soft); }
+
+  .crossover-banner {
+    background: linear-gradient(90deg, var(--cp-accent-soft), transparent);
+    border-left: 3px solid var(--cp-accent);
+    padding: 14px 16px;
+    border-radius: 10px;
+    margin-top: 16px;
+  }
+  .crossover-banner .label {
+    font-size: 0.75rem;
+    color: var(--cp-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .crossover-banner .big {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--cp-accent);
+    font-family: Consolas, "Courier New", Courier, monospace;
+    margin: 4px 0;
+  }
+  .crossover-banner .sub {
+    font-size: 0.9rem;
+    color: var(--cp-text);
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <header class="page">
+    <button class="theme-toggle" onclick="toggleTheme()">Toggle theme</button>
+    <h1>Azure AI Search vs SQL Server 2025 Hyperscale</h1>
+    <p>Native vector + semantic search comparison · cost crossover model · migration map · East US pricing, May 2026</p>
+  </header>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="cost">Cost crossover</button>
+    <button class="tab" data-tab="features">Feature comparison</button>
+    <button class="tab" data-tab="migration">Migration steps</button>
+    <button class="tab" data-tab="pricing">Pricing reference</button>
+  </div>
+
+  <!-- ========== TAB 1: COST ========== -->
+  <section id="tab-cost" class="tab-panel active">
+    <div class="card">
+      <h2>Your workload</h2>
+      <div class="inputs-grid">
+        <div class="field">
+          <label for="baselineTier">AI Search baseline tier</label>
+          <select id="baselineTier">
+            <option value="s1">Standard S1 (160 GB/partition)</option>
+            <option value="s2" selected>Standard S2 (512 GB/partition)</option>
+            <option value="s3">Standard S3 (1 TB/partition)</option>
+            <option value="l1">Storage Opt L1 (2 TB/partition)</option>
+            <option value="l2">Storage Opt L2 (4 TB/partition)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="partitions">Partitions (today)</label>
+          <input id="partitions" type="number" min="1" max="12" value="6" />
+        </div>
+        <div class="field">
+          <label for="replicas">Replicas (today)</label>
+          <input id="replicas" type="number" min="1" max="12" value="4" />
+        </div>
+        <div class="field">
+          <label for="growth">YoY data growth %</label>
+          <input id="growth" type="number" min="0" max="200" step="5" value="40" />
+        </div>
+        <div class="field">
+          <label for="utilization">Tier storage utilization %</label>
+          <input id="utilization" type="number" min="10" max="100" step="5" value="60" />
+        </div>
+        <div class="field">
+          <label for="semanticQ">Semantic ranker queries / mo (K)</label>
+          <input id="semanticQ" type="number" min="0" step="50" value="500" />
+        </div>
+        <div class="field">
+          <label for="sqlVCoresPerReplica">SQL vCores per replica</label>
+          <input id="sqlVCoresPerReplica" type="number" min="2" max="128" value="32" />
+        </div>
+        <div class="field">
+          <label for="sqlReplicas">SQL HA replicas (incl. primary)</label>
+          <input id="sqlReplicas" type="number" min="1" max="6" value="4" />
+        </div>
+        <div class="field">
+          <label for="sqlCompute">SQL compute tier</label>
+          <select id="sqlCompute">
+            <option value="standard">Standard Gen5 ($0.18266/vCore-hr)</option>
+            <option value="premium-mo" selected>Premium Mem-Opt ($0.25572/vCore-hr)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="sqlReservation">SQL reservation</label>
+          <select id="sqlReservation">
+            <option value="payg">Pay-as-you-go</option>
+            <option value="1y" selected>1-year reserved (~35% off)</option>
+            <option value="3y">3-year reserved (~55% off)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="sqlExtras">SQL ops overhead $/mo (recurring)</label>
+          <input id="sqlExtras" type="number" min="0" step="500" value="6000" />
+        </div>
+        <div class="field">
+          <label for="sqlNRE">SQL one-time build cost $ (NRE)</label>
+          <input id="sqlNRE" type="number" min="0" step="25000" value="350000" />
+        </div>
+        <div class="field">
+          <label for="years">Projection horizon (years)</label>
+          <input id="years" type="number" min="1" max="10" value="5" />
+        </div>
+      </div>
+
+      <div id="crossoverBanner" class="crossover-banner" style="display:none;">
+        <div class="label">Cost crossover</div>
+        <div class="big" id="crossoverBigText">—</div>
+        <div class="sub" id="crossoverSubText">—</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>5-year cost projection</h2>
+      <div class="chart-wrap"><canvas id="costChart"></canvas></div>
+      <div class="legend">
+        <span><span class="dot" style="background:#b11f4b"></span>Azure AI Search (auto-tier upgrade as data grows)</span>
+        <span><span class="dot" style="background:#0078d4"></span>SQL Server 2025 Hyperscale (infra only)</span>
+        <span><span class="dot" style="background:#16a34a"></span>SQL Server 2025 Hyperscale + ops overhead + amortized one-time build</span>
+      </div>
+      <details class="assumptions">
+        <summary>Assumptions and how the model works</summary>
+        <ul>
+          <li><strong>Data volume baseline</strong> = partitions × storage-per-partition × utilization %. Grows by your YoY % each year.</li>
+          <li><strong>Year 0 AI Search config is preserved</strong> exactly as you entered it. Year 1+ auto-scales: each year we recompute the minimum (tier, partitions) pair that fits the data without exceeding 12 partitions and the 36-SU per-service cap. If 4 replicas would push SUs over 36, the model bumps to the next tier (more storage per partition, fewer partitions needed).</li>
+          <li><strong>Semantic ranker</strong>: Standard tier billed at $1.00 per 1,000 queries (first 1,000/mo free is ignored at this volume).</li>
+          <li><strong>SQL Hyperscale compute</strong>: vCores × replicas × hourly rate × 730 hr/mo, then reservation discount applied.</li>
+          <li><strong>SQL Hyperscale storage</strong>: $0.10/GB/mo, sized to match the AI Search data volume each year.</li>
+          <li><strong>SQL recurring ops overhead</strong> covers: external semantic re-ranker (cross-encoder on AKS/Container Apps or AOAI calls), ingestion pipeline runtime (ADF/Fabric/Functions), and incremental engineering effort vs the turnkey AI Search managed service. Default $6K/mo.</li>
+          <li><strong>SQL one-time build cost (NRE)</strong>: amortized straight-line over the projection horizon (NRE / months). Default $350K reflects 2 senior engineers for ~20 weeks (ingestion, chunking, embedding pipeline, vector index, RRF in T-SQL, re-ranker integration, observability, testing). Set to 0 to ignore.</li>
+          <li><strong>Not modeled</strong>: embedding generation (both services pay AOAI separately), egress, private endpoint hours, document-cracking skill execution.</li>
+        </ul>
+      </details>
+    </div>
+
+    <div class="card">
+      <h2>Year-by-year breakdown</h2>
+      <table id="yearTable">
+        <thead>
+          <tr>
+            <th>Year</th>
+            <th class="num">Data (TB)</th>
+            <th>AI Search tier</th>
+            <th class="num">Partitions × Replicas</th>
+            <th class="num">AI Search $/mo</th>
+            <th class="num">SQL HS $/mo</th>
+            <th class="num">SQL HS all-in $/mo</th>
+            <th>Cheaper</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ========== TAB 2: FEATURES ========== -->
+  <section id="tab-features" class="tab-panel">
+    <div class="card">
+      <h2>Capability parity matrix</h2>
+      <table>
+        <thead>
+          <tr>
+            <th style="width:28%">Capability</th>
+            <th>Azure AI Search</th>
+            <th>SQL Server 2025 Hyperscale</th>
+            <th style="width:14%">Parity</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Vector type & distance</strong></td>
+            <td>HNSW + exhaustive KNN, cosine/dot/Euclidean, up to <strong>4 096 dims</strong>, scalar & binary quantization, narrow types (int8, float16)</td>
+            <td><code>vector(N)</code> data type up to <strong>1 998 dims</strong>, <code>VECTOR_DISTANCE</code> function with cosine/dot/Euclidean. <em>Blocks <code>text-embedding-3-large</code> at 3 072 dims.</em></td>
+            <td><span class="pill amber">Partial</span></td>
+          </tr>
+          <tr>
+            <td><strong>ANN vector index</strong></td>
+            <td>HNSW, managed automatically per index, GA, vector compression baked in</td>
+            <td><code>CREATE VECTOR INDEX … USING DiskANN</code> — <strong>still in public preview</strong> as of May 2026. Requires <code>PREVIEW_FEATURES = ON</code>. Exact KNN only for &lt; 50K vectors.</td>
+            <td><span class="pill red">Preview</span></td>
+          </tr>
+          <tr>
+            <td><strong>Lexical / BM25 search</strong></td>
+            <td>Built-in BM25 with analyzers, synonyms, stop-words, language packs</td>
+            <td>Full-Text Search (<code>CONTAINS</code>/<code>FREETEXT</code>) + Semantic Search (key phrases / similar docs)</td>
+            <td><span class="pill green">Yes</span></td>
+          </tr>
+          <tr>
+            <td><strong>Hybrid (vector + lexical)</strong></td>
+            <td>Native Reciprocal Rank Fusion (RRF), single query, single response</td>
+            <td>Hand-rolled CTE combining FTS rank + <code>VECTOR_DISTANCE</code> with manual RRF</td>
+            <td><span class="pill amber">DIY</span></td>
+          </tr>
+          <tr>
+            <td><strong>Semantic re-ranker (L2)</strong></td>
+            <td>Microsoft-hosted cross-encoder, billed per query, captions + answers + query rewrite</td>
+            <td>Not built-in. Requires self-hosted cross-encoder or AOAI re-rank call</td>
+            <td><span class="pill red">Gap</span></td>
+          </tr>
+          <tr>
+            <td><strong>Integrated vectorization</strong></td>
+            <td>One-click chunk + embed at index time via AOAI / AI Foundry</td>
+            <td><code>sp_invoke_external_rest_endpoint</code> to AOAI, or external pipeline</td>
+            <td><span class="pill amber">DIY</span></td>
+          </tr>
+          <tr>
+            <td><strong>Indexers / ingestion connectors</strong></td>
+            <td>Blob, ADLS, Cosmos, SQL DB, Fabric OneLake, SharePoint, etc. — managed change tracking</td>
+            <td>ADF, Fabric pipelines, Logic Apps, or custom Functions — manual change tracking</td>
+            <td><span class="pill red">Gap</span></td>
+          </tr>
+          <tr>
+            <td><strong>Document cracking (PDF/DOCX/HTML)</strong></td>
+            <td>Document Extraction skill + OCR + custom skillsets</td>
+            <td>Azure AI Document Intelligence called externally; raw text stored in SQL</td>
+            <td><span class="pill amber">External</span></td>
+          </tr>
+          <tr>
+            <td><strong>Faceting & filtering</strong></td>
+            <td>Native facets, filterable fields, scoring profiles</td>
+            <td><code>GROUP BY</code>, <code>WHERE</code>, computed/indexed columns, materialized views</td>
+            <td><span class="pill green">Yes</span></td>
+          </tr>
+          <tr>
+            <td><strong>Suggesters / autocomplete</strong></td>
+            <td>Built-in suggester data structure with fuzzy matching</td>
+            <td>Trigram or prefix indexes, hand-built</td>
+            <td><span class="pill amber">DIY</span></td>
+          </tr>
+          <tr>
+            <td><strong>Geo search</strong></td>
+            <td>Native <code>Edm.GeographyPoint</code>, geo distance & polygon filters</td>
+            <td>Native <code>geography</code> / <code>geometry</code> spatial types, spatial indexes</td>
+            <td><span class="pill green">Yes</span></td>
+          </tr>
+          <tr>
+            <td><strong>Agentic retrieval</strong></td>
+            <td>Native query planner, conversation context, BYOM, billed per reasoning token</td>
+            <td>Not built-in; orchestrate from app tier with Semantic Kernel / LangChain</td>
+            <td><span class="pill red">Gap</span></td>
+          </tr>
+          <tr>
+            <td><strong>HA / read scale-out</strong></td>
+            <td>Replicas (1–12), automatic load-balancing</td>
+            <td>Hyperscale HA replicas (1–4) + named replicas for read scale</td>
+            <td><span class="pill green">Yes</span></td>
+          </tr>
+          <tr>
+            <td><strong>Vertical scale (CPU/RAM)</strong></td>
+            <td>Fixed per tier — must upgrade tier (S1→S2→S3)</td>
+            <td>Independent vCore and storage scaling, online vCore changes</td>
+            <td><span class="pill green">Better</span></td>
+          </tr>
+          <tr>
+            <td><strong>Transactional writes</strong></td>
+            <td>Eventually consistent index updates; no ACID across documents</td>
+            <td>Full ACID, joins, transactions, foreign keys — same engine as your OLTP</td>
+            <td><span class="pill green">Better</span></td>
+          </tr>
+          <tr>
+            <td><strong>Security: CMK, private link, RBAC</strong></td>
+            <td>CMK, private endpoints, Entra ID auth, role-based access</td>
+            <td>TDE w/ CMK, private link, Entra auth, RLS, column encryption</td>
+            <td><span class="pill green">Yes</span></td>
+          </tr>
+          <tr>
+            <td><strong>Backup / PITR</strong></td>
+            <td>No user-controlled backups (re-index from source)</td>
+            <td>Continuous PITR, 1–35 day retention, LTR up to 10 years</td>
+            <td><span class="pill green">Better</span></td>
+          </tr>
+          <tr>
+            <td><strong>SLA</strong></td>
+            <td>99.9% read for ≥2 replicas, 99.9% read/write for ≥3 replicas</td>
+            <td>99.99% for ≥1 HA replica, 99.995% for zone-redundant HA</td>
+            <td><span class="pill green">Better</span></td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="footnote">
+        Sources: Azure AI Search service limits (<a href="https://learn.microsoft.com/en-us/azure/search/search-limits-quotas-capacity" target="_blank" rel="noopener">link</a>), Azure SQL Hyperscale docs (<a href="https://learn.microsoft.com/en-us/azure/azure-sql/database/service-tier-hyperscale" target="_blank" rel="noopener">link</a>), SQL Server 2025 vectors (<a href="https://learn.microsoft.com/en-us/sql/relational-databases/vectors/vectors-sql-server" target="_blank" rel="noopener">link</a>).
+      </p>
+    </div>
+  </section>
+
+  <!-- ========== TAB 3: MIGRATION ========== -->
+  <section id="tab-migration" class="tab-panel">
+    <div class="card">
+      <h2>Can SQL Server 2025 replace Azure AI Search with zero effort?</h2>
+      <div class="callout" style="background:rgba(220,38,38,0.10); border-left-color: var(--cp-danger); margin-top: 4px;">
+        <strong>No.</strong> SQL Server 2025 Hyperscale gives you the <em>primitives</em> for a retrieval system — the <code>vector</code> data type, DiskANN (preview), Full-Text Search, statistical semantic key phrases. Azure AI Search is a <em>turnkey retrieval platform</em>. To get from primitives to platform there is meaningful upfront engineering, ongoing operational overhead, and a small set of capabilities that don't have a SQL equivalent at all.
+      </div>
+
+      <h3 style="margin-top: 18px;">What does NOT port at all (no SQL equivalent — must approximate or live without)</h3>
+      <table style="margin-top: 8px;">
+        <thead><tr><th>AI Search feature</th><th>Closest SQL substitute</th><th>Parity</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>Microsoft-tuned semantic re-ranker (L2)</strong></td>
+            <td>Self-host a cross-encoder (e.g. ms-marco-MiniLM) on Container Apps + GPU, or call AOAI gpt-4o-mini for LLM re-rank. Quality and per-query latency will differ.</td>
+            <td><span class="pill red">Approximate only</span></td>
+          </tr>
+          <tr>
+            <td><strong>Agentic retrieval (autonomous query planner)</strong></td>
+            <td>Orchestrate from app tier with Semantic Kernel or LangGraph against your SQL hybrid search. Built, not bought.</td>
+            <td><span class="pill red">Build yourself</span></td>
+          </tr>
+          <tr>
+            <td><strong>Integrated vectorization (one-click chunk + embed at index time)</strong></td>
+            <td>External pipeline calling AOAI embeddings, or <code>sp_invoke_external_rest_endpoint</code> per row. No UI, no managed orchestration.</td>
+            <td><span class="pill red">Build yourself</span></td>
+          </tr>
+          <tr>
+            <td><strong>Indexer connector library</strong> (Blob, ADLS, Cosmos, SQL DB, Fabric, SharePoint, ServiceNow…)</td>
+            <td>ADF / Fabric pipelines / custom Functions. You build and operate each connector and its change-tracking.</td>
+            <td><span class="pill red">Build yourself</span></td>
+          </tr>
+          <tr>
+            <td><strong>4 096-dim vector fields</strong> (supports text-embedding-3-large at 3 072)</td>
+            <td>SQL Server 2025 hard-caps at <strong>1 998 dims</strong>. You must use a smaller embedding model (ada-002 at 1 536 fits; 3-large at 3 072 does not).</td>
+            <td><span class="pill red">Hard ceiling</span></td>
+          </tr>
+          <tr>
+            <td><strong>Production-grade ANN vector index (GA)</strong></td>
+            <td>DiskANN is <strong>public preview</strong> in May 2026. Exact KNN works but only practical under ~50 K vectors.</td>
+            <td><span class="pill amber">Preview risk</span></td>
+          </tr>
+          <tr>
+            <td><strong>Native suggesters / autocomplete with fuzzy match</strong></td>
+            <td>Trigram or prefix index, hand-built ranker.</td>
+            <td><span class="pill amber">DIY</span></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3 style="margin-top: 18px;">Upfront engineering build-out (one-time, NRE)</h3>
+      <table style="margin-top: 8px;">
+        <thead><tr><th>Workstream</th><th class="num">Eng-weeks (range)</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td>Schema, Hyperscale provisioning, networking, identity</td><td class="num">1–2</td><td>Straightforward.</td></tr>
+          <tr><td>Ingestion pipeline (replace indexers)</td><td class="num">4–8</td><td>One pipeline per source system; change tracking.</td></tr>
+          <tr><td>Document cracking (Document Intelligence integration)</td><td class="num">1–2</td><td>If you have rich PDF/DOCX content.</td></tr>
+          <tr><td>Chunking pipeline</td><td class="num">1–2</td><td>Recursive splitter or domain-aware.</td></tr>
+          <tr><td>Embedding generation pipeline</td><td class="num">1–2</td><td>Batch via Functions / Fabric. Avoid per-row <code>sp_invoke_external_rest_endpoint</code>.</td></tr>
+          <tr><td>DiskANN vector index setup + tuning</td><td class="num">1–2</td><td>Preview feature; expect iteration.</td></tr>
+          <tr><td>Hybrid retrieval w/ RRF in T-SQL</td><td class="num">2–4</td><td>One stored procedure per query shape; hand-coded RRF.</td></tr>
+          <tr><td><strong>Semantic re-ranker (host or call AOAI)</strong></td><td class="num">4–8</td><td>Biggest individual line item. GPU container app + model serving + latency tuning.</td></tr>
+          <tr><td>Faceting, filters, scoring profiles</td><td class="num">2–4</td><td>Per query/result shape.</td></tr>
+          <tr><td>Observability & relevance dashboards</td><td class="num">2–3</td><td>You lose AI Search query telemetry; rebuild it.</td></tr>
+          <tr><td>Testing, NDCG/MRR benchmarking, cutover</td><td class="num">4–8</td><td>Shadow traffic, A/B, parity sign-off.</td></tr>
+          <tr style="font-weight: 600;">
+            <td>Total</td>
+            <td class="num">23–45 eng-weeks</td>
+            <td>≈ 2 senior engineers for 12–22 calendar weeks.</td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="footnote">At a fully-loaded $8 K / engineer-week (US senior IC, blended), the build cost lands roughly <strong>$184 K – $720 K one-time</strong>. The model's default is $350 K. Add the cost-tab "SQL one-time build cost" input to fold it into the projection as straight-line amortization across your horizon.</p>
+
+      <h2 style="margin-top: 22px;">15-step build playbook</h2>
+      <p style="color:var(--cp-text-muted); font-size:0.92rem;">
+        In order. Where parity is lost, called out inline.
+      </p>
+      <ol class="steps">
+        <li>
+          <div class="step-title">Stand up the database</div>
+          <div class="step-body">Provision Azure SQL Database Hyperscale (Standard Gen5 or Premium Mem-Opt). Enable Premium-series memory-optimized compute for vector workloads. Configure 1–4 HA replicas to mirror your AI Search replica count and one or more named replicas for read scale-out.</div>
+        </li>
+        <li>
+          <div class="step-title">Design the schema</div>
+          <div class="step-body">Create a <code>documents</code> table for source metadata and a <code>chunks</code> table with <code>chunk_id</code>, <code>doc_id</code>, <code>text nvarchar(max)</code>, <code>embedding vector(N)</code>, plus filterable / facetable columns. Add full-text catalog on the text column.</div>
+        </li>
+        <li>
+          <div class="step-title">Replace indexers — build an ingestion pipeline</div>
+          <div class="step-body">AI Search indexers (Blob, ADLS, Cosmos, SQL, Fabric, SharePoint) become Azure Data Factory pipelines, Fabric Dataflows, or Azure Functions. You own change tracking (high-water mark column or CDC).</div>
+        </li>
+        <li>
+          <div class="step-title">Replace document cracking</div>
+          <div class="step-body">Call Azure AI Document Intelligence for PDF/Office/OCR. Land raw extracted text in <code>documents.raw_text</code>. AI Search did this inline; here it's an external skill in the pipeline.</div>
+        </li>
+        <li>
+          <div class="step-title">Replace the Text Split skill — chunking</div>
+          <div class="step-body">Implement chunking in the pipeline (LangChain RecursiveCharacterTextSplitter, Semantic Kernel, or your own UDF). Persist chunks as rows in <code>chunks</code>.</div>
+        </li>
+        <li>
+          <div class="step-title">Replace integrated vectorization — embeddings</div>
+          <div class="step-body">Generate embeddings with Azure OpenAI <code>text-embedding-3-large</code>. Either call <code>sp_invoke_external_rest_endpoint</code> from a stored procedure (per-row, simple) or batch externally in the pipeline (faster, cheaper). Store as <code>vector(1536)</code> or <code>vector(3072)</code> — note SQL Server 2025 caps at 1 998 dimensions.</div>
+        </li>
+        <li>
+          <div class="step-title">Build the vector index</div>
+          <div class="step-body"><code>CREATE VECTOR INDEX IX_chunks_emb ON dbo.chunks(embedding) WITH (METRIC = 'cosine', TYPE = 'diskann');</code> Note: at GA the DiskANN index is single-replica and rebuilt from scratch — plan for batched maintenance windows.</div>
+        </li>
+        <li>
+          <div class="step-title">Re-implement hybrid retrieval with RRF</div>
+          <div class="step-body">Write a single query that runs an FTS lexical search, a vector KNN, ranks each, then combines with hand-coded Reciprocal Rank Fusion. AI Search does this in one line; here it's ~40 lines of CTE/T-SQL per query shape.</div>
+        </li>
+        <li>
+          <div class="step-title">Build a semantic re-ranker — the biggest gap</div>
+          <div class="step-body">Choose one: (a) self-host a cross-encoder (e.g. <code>ms-marco-MiniLM-L-12-v2</code>) on Azure Container Apps or AKS with GPU and call it from the app tier on the top-50 results; (b) call Azure OpenAI <code>gpt-4o-mini</code> to score relevance — much higher quality, much higher cost. Either way: no built-in equivalent to AI Search semantic ranker.</div>
+        </li>
+        <li>
+          <div class="step-title">Recreate scoring profiles and synonyms</div>
+          <div class="step-body">Move field-weighting, freshness boosts, and tag boosts into your T-SQL ranking expression. Use FTS thesaurus XML for synonyms; stop-lists for stop words.</div>
+        </li>
+        <li>
+          <div class="step-title">Recreate facets, suggesters, and autocomplete</div>
+          <div class="step-body">Facets → <code>GROUP BY</code> with indexed columns or pre-aggregated materialized views. Suggesters → prefix or trigram index on the suggester source field; query with <code>LIKE 'term%'</code>.</div>
+        </li>
+        <li>
+          <div class="step-title">Wire up observability & query telemetry</div>
+          <div class="step-body">AI Search Insights → use Azure SQL Database Insights, Query Performance Insight, and Application Insights from the app tier. Build a custom relevance dashboard since AI Search's per-query telemetry is not available.</div>
+        </li>
+        <li>
+          <div class="step-title">Security, network, and identity</div>
+          <div class="step-body">Enable TDE with customer-managed key, private endpoints, Entra-only auth, row-level security if you have multi-tenant data, and column-level encryption for PII. All native in Hyperscale.</div>
+        </li>
+        <li>
+          <div class="step-title">If you used agentic retrieval — rebuild it</div>
+          <div class="step-body">AI Search's agentic retrieval (query planning + reasoning tokens) has no SQL equivalent. Build it in the app tier with Semantic Kernel or LangGraph orchestrating multi-turn retrieval against your SQL hybrid search.</div>
+        </li>
+        <li>
+          <div class="step-title">Cut over with shadow traffic</div>
+          <div class="step-body">Run both services in parallel. Replay a representative query log against both and compare top-K results with NDCG / MRR. Only cut over when SQL hybrid + custom re-rank beats AI Search baseline on your relevance benchmark.</div>
+        </li>
+      </ol>
+      <div class="callout">
+        <strong>Biggest gaps</strong> when moving off AI Search: the semantic re-ranker, integrated vectorization, indexer-style connectors, and agentic retrieval. These are real engineering work — budget them into the cost model on the previous tab via the "SQL ops overhead" input.
+      </div>
+      <div class="callout" style="background:rgba(245,158,11,0.10); border-left-color: var(--cp-warning); margin-top: 12px;">
+        <strong>Production readiness flag (May 2026):</strong> The DiskANN <em>vector index</em> in SQL Server 2025 / Azure SQL is still <strong>public preview</strong> — not GA. Exact KNN (no index) is GA but only practical for &lt; ~50K vectors. If your workload needs ANN performance on millions of vectors today, AI Search HNSW is the only GA path on Microsoft's stack. Revisit when DiskANN GAs.
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== TAB 4: PRICING REF ========== -->
+  <section id="tab-pricing" class="tab-panel">
+    <div class="card">
+      <h2>Azure AI Search — per Search Unit (East US, May 2026)</h2>
+      <table>
+        <thead>
+          <tr><th>Tier</th><th class="num">$/SU/hr</th><th class="num">$/SU/mo (730 hr)</th><th class="num">Storage / partition</th><th class="num">Max partitions</th><th class="num">Max SUs / service</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Basic</td><td class="num">$0.101</td><td class="num">$73.73</td><td class="num">15 GB</td><td class="num">3</td><td class="num">9</td></tr>
+          <tr><td>Standard S1</td><td class="num">$0.336</td><td class="num">$245.28</td><td class="num">160 GB</td><td class="num">12</td><td class="num">36</td></tr>
+          <tr><td>Standard S2</td><td class="num">$1.344</td><td class="num">$981.12</td><td class="num">512 GB</td><td class="num">12</td><td class="num">36</td></tr>
+          <tr><td>Standard S3</td><td class="num">$2.688</td><td class="num">$1,962.24</td><td class="num">1 TB</td><td class="num">12</td><td class="num">36</td></tr>
+          <tr><td>Storage Opt L1</td><td class="num">$3.839</td><td class="num">$2,802.47</td><td class="num">2 TB</td><td class="num">12</td><td class="num">36</td></tr>
+          <tr><td>Storage Opt L2</td><td class="num">$7.677</td><td class="num">$5,604.21</td><td class="num">4 TB</td><td class="num">12</td><td class="num">36</td></tr>
+        </tbody>
+      </table>
+      <p class="footnote">SU = partitions × replicas. Service-wide cap is 36 SUs (so with 4 replicas, the maximum partition count is 9 — bumping partitions further requires upgrading the tier). <strong>Azure AI Search does not offer reserved capacity / 1-yr or 3-yr commitment pricing</strong> — all billing is hourly PAYG.</p>
+      <p class="footnote">Vector index size cap per partition (separate from data storage cap): Basic 5 GB, S1 35 GB, S2 150 GB, S3 / L2 300 GB, L1 150 GB.</p>
+
+      <h3 style="margin-top:18px">Add-ons</h3>
+      <table>
+        <thead><tr><th>Meter</th><th class="num">Price</th></tr></thead>
+        <tbody>
+          <tr><td>Semantic ranker (Standard tier)</td><td class="num">$1.00 / 1 000 queries</td></tr>
+          <tr><td>Semantic ranker (Free tier)</td><td class="num">First 1 000 queries / mo free</td></tr>
+          <tr><td>Document cracking — image extraction</td><td class="num">$1.00 / 1 000 (volume discounts apply)</td></tr>
+          <tr><td>Agentic retrieval — medium reasoning</td><td class="num">$0.0001 / 1 000 tokens</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>Azure SQL Database Hyperscale (East US, May 2026)</h2>
+      <table>
+        <thead>
+          <tr><th>Compute series</th><th class="num">$/vCore/hr (PAYG)</th><th class="num">1-yr reserved</th><th class="num">3-yr reserved</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Standard-series Gen5</td><td class="num">$0.18266</td><td class="num">~$0.1187</td><td class="num">~$0.0822</td></tr>
+          <tr><td>Premium-series</td><td class="num">$0.18266</td><td class="num">~$0.1187</td><td class="num">~$0.0822</td></tr>
+          <tr><td>Premium-series Memory-Optimized</td><td class="num">$0.25572</td><td class="num">~$0.1663</td><td class="num">~$0.1150</td></tr>
+          <tr><td>DC-series (confidential)</td><td class="num">$0.36500</td><td class="num">$0.2374</td><td class="num">$0.1644</td></tr>
+        </tbody>
+      </table>
+      <p class="footnote">Each HA replica and named replica is billed at the same compute rate as the primary. Reserved capacity discounts are approximate (~35% for 1-yr, ~55% for 3-yr).</p>
+
+      <h3 style="margin-top:18px">Storage & backup</h3>
+      <table>
+        <thead><tr><th>Meter</th><th class="num">Price</th></tr></thead>
+        <tbody>
+          <tr><td>Hyperscale data storage (Single DB)</td><td class="num">$0.10 / GB / month</td></tr>
+          <tr><td>Hyperscale data storage (Elastic Pool)</td><td class="num">$0.25 / GB / month</td></tr>
+          <tr><td>Hyperscale I/O</td><td class="num">$0.20 / 1 M I/O ops</td></tr>
+          <tr><td>Backup storage (LRS / ZRS short-term)</td><td class="num">Included up to 100% of DB size</td></tr>
+          <tr><td>LTR backup (LRS / ZRS)</td><td class="num">$0.025 / GB / month</td></tr>
+          <tr><td>LTR backup (RA-GRS / RA-GZRS)</td><td class="num">$0.05 / GB / month</td></tr>
+        </tbody>
+      </table>
+      <p class="footnote">Source: Azure Retail Prices API (<code>prices.azure.com/api/retail/prices</code>), East US region, retrieved May 20, 2026.</p>
+    </div>
+  </section>
+</div>
+
+<script>
+function toggleTheme() {
+  const cur = document.documentElement.getAttribute("data-theme");
+  document.documentElement.setAttribute("data-theme", cur === "dark" ? "light" : "dark");
+  refresh();
+}
+
+// Tab switching
+document.querySelectorAll(".tab").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".tab").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+    btn.classList.add("active");
+    document.getElementById("tab-" + btn.dataset.tab).classList.add("active");
+    if (chart) chart.resize();
+  });
+});
+
+// ========== Pricing model ==========
+const HOURS_PER_MONTH = 730;
+
+const AI_TIERS = [
+  { key: "basic", name: "Basic",        hourly: 0.101, gbPerPart: 15,   maxPart: 3,  maxSU: 9  },
+  { key: "s1",    name: "Std S1",       hourly: 0.336, gbPerPart: 160,  maxPart: 12, maxSU: 36 },
+  { key: "s2",    name: "Std S2",       hourly: 1.344, gbPerPart: 512,  maxPart: 12, maxSU: 36 },
+  { key: "s3",    name: "Std S3",       hourly: 2.688, gbPerPart: 1024, maxPart: 12, maxSU: 36 },
+  { key: "l1",    name: "Storage Opt L1", hourly: 3.839, gbPerPart: 2048, maxPart: 12, maxSU: 36 },
+  { key: "l2",    name: "Storage Opt L2", hourly: 7.677, gbPerPart: 4096, maxPart: 12, maxSU: 36 },
+];
+
+function tierByKey(k) { return AI_TIERS.find(t => t.key === k); }
+
+function aiSearchAutoScale(baselineKey, basePartitions, replicas, utilizationPct, growthMult, isBaselineYear) {
+  const base = tierByKey(baselineKey);
+  const baseDataGB = basePartitions * base.gbPerPart * (utilizationPct / 100);
+  const dataGB = baseDataGB * growthMult;
+  if (isBaselineYear) {
+    return { tier: base, partitions: basePartitions, replicas, sus: basePartitions * replicas, dataGB, exceeded: false };
+  }
+  const startIdx = AI_TIERS.findIndex(t => t.key === baselineKey);
+  for (let i = startIdx; i < AI_TIERS.length; i++) {
+    const t = AI_TIERS[i];
+    const partsNeeded = Math.max(basePartitions, Math.ceil(dataGB / t.gbPerPart));
+    const sus = partsNeeded * replicas;
+    if (partsNeeded <= t.maxPart && sus <= t.maxSU) {
+      return { tier: t, partitions: partsNeeded, replicas, sus, dataGB, exceeded: false };
+    }
+    const partsAtCap = Math.ceil(dataGB / t.gbPerPart);
+    if (partsAtCap <= t.maxPart && partsAtCap * replicas <= t.maxSU) {
+      return { tier: t, partitions: partsAtCap, replicas, sus: partsAtCap * replicas, dataGB, exceeded: false };
+    }
+  }
+  const last = AI_TIERS[AI_TIERS.length - 1];
+  const parts = Math.min(last.maxPart, Math.floor(last.maxSU / replicas));
+  return { tier: last, partitions: parts, replicas, sus: parts * replicas, dataGB, exceeded: true };
+}
+
+function aiSearchMonthly(scaled, semanticKQueries) {
+  const compute = scaled.sus * scaled.tier.hourly * HOURS_PER_MONTH;
+  const semantic = Math.max(0, semanticKQueries) * 1.0;
+  return { total: compute + semantic, compute, semantic };
+}
+
+function sqlMonthly(vCoresPerReplica, replicas, computeType, reservation, dataGB) {
+  const ratePAYG = computeType === "premium-mo" ? 0.25572 : 0.18266;
+  const discount = reservation === "1y" ? 0.35 : reservation === "3y" ? 0.55 : 0;
+  const ratePerCoreMo = ratePAYG * HOURS_PER_MONTH * (1 - discount);
+  const compute = vCoresPerReplica * replicas * ratePerCoreMo;
+  const storage = dataGB * 0.10;
+  return { total: compute + storage, compute, storage };
+}
+
+// ========== Chart ==========
+let chart = null;
+function rebuildChart(years, aiSeries, sqlSeries, sqlOpsSeries) {
+  const labels = years.map(y => "Year " + y);
+  const cs = getComputedStyle(document.documentElement);
+  const text = cs.getPropertyValue("--cp-text-muted").trim();
+  const grid = cs.getPropertyValue("--cp-border").trim();
+
+  const data = {
+    labels,
+    datasets: [
+      { label: "Azure AI Search", data: aiSeries, borderColor: "#b11f4b", backgroundColor: "rgba(177,31,75,0.10)", tension: 0.25, borderWidth: 2.5, pointRadius: 4, pointHoverRadius: 6, fill: false },
+      { label: "SQL Server 2025 Hyperscale (infra only)", data: sqlSeries, borderColor: "#0078d4", backgroundColor: "rgba(0,120,212,0.10)", tension: 0.25, borderWidth: 2.5, pointRadius: 4, pointHoverRadius: 6, fill: false },
+      { label: "SQL Server 2025 Hyperscale + ops overhead", data: sqlOpsSeries, borderColor: "#16a34a", backgroundColor: "rgba(22,163,74,0.10)", tension: 0.25, borderWidth: 2.5, pointRadius: 4, pointHoverRadius: 6, borderDash: [6,4], fill: false },
+    ]
+  };
+
+  const opts = {
+    responsive: true, maintainAspectRatio: false,
+    interaction: { mode: "index", intersect: false },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: ctx => ctx.dataset.label + ": $" + Math.round(ctx.parsed.y).toLocaleString() + " / mo"
+        }
+      }
+    },
+    scales: {
+      x: { ticks: { color: text }, grid: { color: grid } },
+      y: {
+        ticks: {
+          color: text,
+          callback: v => "$" + (v >= 1000 ? (v/1000).toFixed(0) + "k" : v.toFixed(0))
+        },
+        grid: { color: grid },
+        title: { display: true, text: "Monthly cost (USD)", color: text }
+      }
+    }
+  };
+
+  if (chart) { chart.destroy(); }
+  chart = new Chart(document.getElementById("costChart"), { type: "line", data, options: opts });
+}
+
+// ========== Main refresh ==========
+function refresh() {
+  const baseline = document.getElementById("baselineTier").value;
+  const partitions = +document.getElementById("partitions").value || 1;
+  const replicas = +document.getElementById("replicas").value || 1;
+  const growth = (+document.getElementById("growth").value || 0) / 100;
+  const util = +document.getElementById("utilization").value || 50;
+  const semanticQ = +document.getElementById("semanticQ").value || 0;
+  const vCoresPerRep = +document.getElementById("sqlVCoresPerReplica").value || 8;
+  const sqlReps = +document.getElementById("sqlReplicas").value || 1;
+  const sqlCompute = document.getElementById("sqlCompute").value;
+  const sqlRes = document.getElementById("sqlReservation").value;
+  const sqlExtras = +document.getElementById("sqlExtras").value || 0;
+  const sqlNRE = +document.getElementById("sqlNRE").value || 0;
+  const years = +document.getElementById("years").value || 5;
+  const monthsInHorizon = Math.max(1, years * 12);
+  const amortizedNRE = sqlNRE / monthsInHorizon;
+
+  const yearList = [];
+  const aiCosts = [], sqlCosts = [], sqlOpsCosts = [];
+  const tbody = document.querySelector("#yearTable tbody");
+  tbody.innerHTML = "";
+
+  let crossoverYear = null;
+  let crossoverOpsYear = null;
+  let prevAiMinusSql = null;
+  let prevAiMinusSqlOps = null;
+
+  for (let y = 0; y <= years; y++) {
+    const growthMult = Math.pow(1 + growth, y);
+    const scaled = aiSearchAutoScale(baseline, partitions, replicas, util, growthMult, y === 0);
+    const ai = aiSearchMonthly(scaled, semanticQ);
+    const sql = sqlMonthly(vCoresPerRep, sqlReps, sqlCompute, sqlRes, scaled.dataGB);
+    const sqlOps = sql.total + sqlExtras + amortizedNRE;
+
+    yearList.push(y);
+    aiCosts.push(Math.round(ai.total));
+    sqlCosts.push(Math.round(sql.total));
+    sqlOpsCosts.push(Math.round(sqlOps));
+
+    // crossover detection (sign change of (ai - sql))
+    const diff = ai.total - sql.total;
+    if (prevAiMinusSql !== null && prevAiMinusSql < 0 && diff >= 0 && crossoverYear === null) {
+      const t = -prevAiMinusSql / (diff - prevAiMinusSql);
+      crossoverYear = (y - 1) + t;
+    }
+    if (prevAiMinusSql !== null && prevAiMinusSql > 0 && diff <= 0 && crossoverYear === null) {
+      const t = prevAiMinusSql / (prevAiMinusSql - diff);
+      crossoverYear = (y - 1) + t;
+    }
+    prevAiMinusSql = diff;
+
+    const diffOps = ai.total - sqlOps;
+    if (prevAiMinusSqlOps !== null && prevAiMinusSqlOps < 0 && diffOps >= 0 && crossoverOpsYear === null) {
+      const t = -prevAiMinusSqlOps / (diffOps - prevAiMinusSqlOps);
+      crossoverOpsYear = (y - 1) + t;
+    }
+    if (prevAiMinusSqlOps !== null && prevAiMinusSqlOps > 0 && diffOps <= 0 && crossoverOpsYear === null) {
+      const t = prevAiMinusSqlOps / (prevAiMinusSqlOps - diffOps);
+      crossoverOpsYear = (y - 1) + t;
+    }
+    prevAiMinusSqlOps = diffOps;
+
+    const cheaperLabel = ai.total <= sqlOps ? "AI Search" : (ai.total <= sql.total ? "AI Search (vs SQL+ops)" : "SQL Hyperscale");
+    const cheaperClass = ai.total <= sql.total ? "accent" : "green";
+
+    const exceededBadge = scaled.exceeded ? ' <span class="pill red" title="Exceeds AI Search per-service maximums — would require splitting across multiple services">CAP</span>' : "";
+
+    tbody.insertAdjacentHTML("beforeend",
+      `<tr>
+        <td>Year ${y}</td>
+        <td class="num">${(scaled.dataGB/1024).toFixed(2)}</td>
+        <td>${scaled.tier.name}${exceededBadge}</td>
+        <td class="num">${scaled.partitions} × ${scaled.replicas} = ${scaled.sus} SU</td>
+        <td class="num">$${Math.round(ai.total).toLocaleString()}</td>
+        <td class="num">$${Math.round(sql.total).toLocaleString()}</td>
+        <td class="num">$${Math.round(sqlOps).toLocaleString()}</td>
+        <td><span class="pill ${cheaperClass}">${cheaperLabel}</span></td>
+      </tr>`);
+  }
+
+  rebuildChart(yearList, aiCosts, sqlCosts, sqlOpsCosts);
+
+  // Crossover banner
+  const banner = document.getElementById("crossoverBanner");
+  const big = document.getElementById("crossoverBigText");
+  const sub = document.getElementById("crossoverSubText");
+
+  const startsHigher = aiCosts[0] > sqlOpsCosts[0];
+
+  if (crossoverOpsYear !== null) {
+    banner.style.display = "block";
+    big.textContent = `~ Year ${crossoverOpsYear.toFixed(1)}`;
+    sub.innerHTML = startsHigher
+      ? `Up to year ${crossoverOpsYear.toFixed(1)}, <strong>SQL Hyperscale + ops overhead is cheaper</strong> than Azure AI Search. After that, AI Search overtakes SQL because of step-function tier upgrades driven by your ${(growth*100).toFixed(0)}% data growth.`
+      : `Through year ${crossoverOpsYear.toFixed(1)}, <strong>Azure AI Search is cheaper</strong>. After that, SQL Hyperscale + ops overhead crosses below as AI Search is forced into higher tiers.`;
+  } else if (crossoverYear !== null) {
+    banner.style.display = "block";
+    big.textContent = `~ Year ${crossoverYear.toFixed(1)} (infra only)`;
+    sub.innerHTML = `<strong>AI Search and raw SQL infra cross over in year ${crossoverYear.toFixed(1)}</strong>. If you add operational overhead (re-ranker, ETL, FTE), SQL stays ${aiCosts[0] > sqlOpsCosts[0] ? "cheaper" : "more expensive"} for the whole window.`;
+  } else {
+    banner.style.display = "block";
+    if (aiCosts[aiCosts.length-1] > sqlOpsCosts[sqlOpsCosts.length-1]) {
+      big.textContent = `No crossover in ${years} years`;
+      sub.innerHTML = `<strong>SQL Hyperscale + ops overhead stays cheaper for the entire ${years}-year window.</strong> AI Search is always more expensive — likely because of tier step-ups driven by ${(growth*100).toFixed(0)}% YoY growth.`;
+    } else {
+      big.textContent = `No crossover in ${years} years`;
+      sub.innerHTML = `<strong>Azure AI Search stays cheaper for the entire ${years}-year window.</strong> Your SQL ops overhead is large enough that SQL never catches up.`;
+    }
+  }
+}
+
+// Wire inputs
+["baselineTier","partitions","replicas","growth","utilization","semanticQ",
+ "sqlVCoresPerReplica","sqlReplicas","sqlCompute","sqlReservation","sqlExtras","sqlNRE","years"]
+  .forEach(id => document.getElementById(id).addEventListener("input", refresh));
+
+refresh();
+</script>
+</body>
+</html>
