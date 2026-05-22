@@ -26,4 +26,17 @@ The interactive HTML has 5 tabs:
 
 ---
 
+## 🆕 Companion guide — Hyperscale portal walkthrough (GUI only)
+
+A second artifact for hands-on operators who want the click-by-click Azure portal steps for getting a production Hyperscale instance with HA + named-replica read scale-out + DiskANN vector index, **without any scripts**.
+
+→ **[Open the Portal Setup Guide](./hyperscale-portal-guide/)**
+
+- 21 real Azure portal screenshots (tenant identifiers masked)
+- Sticky numbered TOC, step-by-step
+- Includes PREVIEW_FEATURES enablement (the switch that unlocks DiskANN)
+- Plus example T-SQL for the vector column + index after deploy
+
+---
+
 _Built with the Clawpilot web-artifacts-builder skill. Co-authored-by: Copilot._

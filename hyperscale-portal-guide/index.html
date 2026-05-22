@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>
+  (() => {
+    const param = new URLSearchParams(window.location.search).get("clawpilotTheme");
+    const theme = param || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    document.documentElement.setAttribute("data-theme", theme);
+  })();
+</script>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Azure SQL Hyperscale + Vector — Portal Setup Guide</title>
+<style>
+  :root {
+    color-scheme: light;
+    --cp-bg: #f7f4ef;
+    --cp-bg-elevated: #fcfbf8;
+    --cp-surface: #ffffff;
+    --cp-surface-soft: #f5f5f5;
+    --cp-border: #dedede;
+    --cp-border-strong: #919191;
+    --cp-text: #242424;
+    --cp-text-muted: #5c5c5c;
+    --cp-text-soft: #6f6f6f;
+    --cp-accent: #b11f4b;
+    --cp-accent-hover: #9a1a41;
+    --cp-accent-soft: rgba(177, 31, 75, 0.08);
+    --cp-accent-fg: #ffffff;
+    --cp-success: #16a34a;
+    --cp-danger: #dc2626;
+    --cp-warning: #f59e0b;
+    --cp-link: #0078d4;
+    --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.12);
+    --cp-overlay: rgba(255, 255, 255, 0.8);
+    --cp-panel: rgba(255, 255, 255, 0.86);
+    --cp-panel-strong: rgba(255, 255, 255, 0.96);
+    --cp-sheen: rgba(255, 255, 255, 0.55);
+    --cp-highlight: rgba(177, 31, 75, 0.12);
+  }
+  html[data-theme="dark"] {
+    color-scheme: dark;
+    --cp-bg: #3d3b3a;
+    --cp-bg-elevated: #343231;
+    --cp-surface: #292929;
+    --cp-surface-soft: #2e2e2e;
+    --cp-border: #474747;
+    --cp-border-strong: #5f5f5f;
+    --cp-text: #dedede;
+    --cp-text-muted: #919191;
+    --cp-text-soft: #b0b0b0;
+    --cp-accent: #fd8ea1;
+    --cp-accent-hover: #fb7b91;
+    --cp-accent-soft: rgba(253, 142, 161, 0.14);
+    --cp-accent-fg: #1a1a1a;
+    --cp-success: #4ade80;
+    --cp-danger: #f87171;
+    --cp-warning: #fbbf24;
+    --cp-link: #4da6ff;
+    --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.32);
+    --cp-overlay: rgba(41, 41, 41, 0.88);
+    --cp-panel: rgba(41, 41, 41, 0.72);
+    --cp-panel-strong: rgba(41, 41, 41, 0.96);
+    --cp-sheen: rgba(255, 255, 255, 0.04);
+    --cp-highlight: rgba(253, 142, 161, 0.12);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: "Segoe UI", Aptos, Calibri, -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--cp-bg);
+    color: var(--cp-text);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  .container {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 28px 24px 64px;
+  }
+
+  header.page {
+    margin-bottom: 22px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  header.page h1 {
+    font-size: 1.7rem;
+    margin: 0 0 6px;
+    letter-spacing: -0.01em;
+  }
+  header.page .sub {
+    color: var(--cp-text-muted);
+    font-size: 0.92rem;
+    margin: 0;
+  }
+
+  .theme-toggle {
+    background: var(--cp-surface);
+    border: 1px solid var(--cp-border);
+    color: var(--cp-text);
+    border-radius: 999px;
+    padding: 6px 14px;
+    font-family: inherit;
+    font-size: 0.82rem;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .theme-toggle:hover { background: var(--cp-surface-soft); }
+
+  .pill-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 10px 0 4px;
+  }
+  .pill {
+    display: inline-block;
+    padding: 4px 10px;
+    font-size: 0.74rem;
+    font-weight: 500;
+    border-radius: 999px;
+    background: var(--cp-surface-soft);
+    color: var(--cp-text-muted);
+    border: 1px solid var(--cp-border);
+  }
+  .pill.accent { background: var(--cp-accent-soft); color: var(--cp-accent); border-color: transparent; }
+  .pill.success { background: rgba(22, 163, 74, 0.12); color: var(--cp-success); border-color: transparent; }
+  .pill.warning { background: rgba(245, 158, 11, 0.15); color: var(--cp-warning); border-color: transparent; }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    gap: 22px;
+    align-items: start;
+  }
+  @media (max-width: 1000px) {
+    .layout { grid-template-columns: 1fr; }
+    .toc { position: static !important; max-height: none !important; }
+  }
+
+  .toc {
+    position: sticky;
+    top: 12px;
+    background: var(--cp-surface);
+    border: 1px solid var(--cp-border);
+    border-radius: 12px;
+    padding: 12px 10px;
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
+    font-size: 0.83rem;
+  }
+  .toc-title {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--cp-text-muted);
+    font-weight: 600;
+    padding: 4px 8px 8px;
+  }
+  .toc a {
+    display: block;
+    padding: 6px 8px;
+    color: var(--cp-text-muted);
+    text-decoration: none;
+    border-radius: 6px;
+    border-left: 2px solid transparent;
+    line-height: 1.3;
+  }
+  .toc a:hover {
+    background: var(--cp-surface-soft);
+    color: var(--cp-text);
+  }
+  .toc a .num {
+    display: inline-block;
+    width: 22px;
+    color: var(--cp-accent);
+    font-family: Consolas, "Courier New", Courier, monospace;
+    font-weight: 600;
+  }
+  .toc a.section {
+    color: var(--cp-text);
+    font-weight: 600;
+    margin-top: 6px;
+  }
+
+  .card {
+    background: var(--cp-surface);
+    border: 1px solid var(--cp-border);
+    border-radius: 16px;
+    padding: 20px 22px;
+    box-shadow: 0 0 2px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.14);
+    margin-bottom: 16px;
+  }
+  .card h2 {
+    margin: 0 0 10px;
+    font-size: 1.1rem;
+    letter-spacing: -0.005em;
+  }
+  .card h3 {
+    margin: 0 0 8px;
+    font-size: 0.95rem;
+  }
+  .card p { margin: 0 0 10px; font-size: 0.92rem; }
+  .card p:last-child { margin-bottom: 0; }
+  .card ul { margin: 0 0 10px; padding-left: 22px; font-size: 0.92rem; }
+  .card ul li { margin-bottom: 4px; }
+  .card code {
+    background: var(--cp-surface-soft);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-family: Consolas, "Courier New", Courier, monospace;
+    font-size: 0.85rem;
+  }
+
+  .callout {
+    border-left: 3px solid var(--cp-accent);
+    background: var(--cp-accent-soft);
+    padding: 12px 14px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    margin: 10px 0;
+  }
+  .callout.success { border-color: var(--cp-success); background: rgba(22, 163, 74, 0.10); }
+  .callout.warning { border-color: var(--cp-warning); background: rgba(245, 158, 11, 0.12); }
+  .callout strong { color: var(--cp-accent); }
+  .callout.success strong { color: var(--cp-success); }
+  .callout.warning strong { color: var(--cp-warning); }
+
+  /* ======= Step cards ======= */
+  .step {
+    background: var(--cp-surface);
+    border: 1px solid var(--cp-border);
+    border-radius: 14px;
+    padding: 22px 24px;
+    margin-bottom: 20px;
+    scroll-margin-top: 12px;
+    box-shadow: 0 0 2px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.14);
+  }
+  .step .step-head {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .step .step-num {
+    width: 34px;
+    height: 34px;
+    flex: 0 0 auto;
+    border-radius: 50%;
+    background: var(--cp-accent);
+    color: var(--cp-accent-fg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-family: Consolas, "Courier New", Courier, monospace;
+    font-size: 0.92rem;
+  }
+  .step .step-head h2 {
+    margin: 4px 0 2px;
+    font-size: 1.1rem;
+    letter-spacing: -0.005em;
+  }
+  .step .step-head .step-sub {
+    color: var(--cp-text-muted);
+    font-size: 0.85rem;
+    margin: 0;
+  }
+  .step .step-body { margin-top: 4px; }
+  .step .step-body p { margin: 0 0 10px; font-size: 0.92rem; }
+  .step .step-body ul,
+  .step .step-body ol { margin: 0 0 12px; padding-left: 22px; font-size: 0.92rem; }
+  .step .step-body ul li,
+  .step .step-body ol li { margin-bottom: 4px; }
+
+  .screenshot {
+    margin: 14px 0 4px;
+    background: var(--cp-surface-soft);
+    border: 1px solid var(--cp-border);
+    border-radius: 10px;
+    padding: 8px;
+  }
+  .screenshot img {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 6px;
+    border: 1px solid var(--cp-border);
+  }
+  .screenshot figcaption {
+    color: var(--cp-text-muted);
+    font-size: 0.78rem;
+    margin: 6px 4px 2px;
+  }
+
+  .field-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+    margin: 8px 0 12px;
+  }
+  .field-table th {
+    text-align: left;
+    background: var(--cp-surface-soft);
+    color: var(--cp-text-muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.7rem;
+    letter-spacing: 0.04em;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--cp-border);
+  }
+  .field-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--cp-border);
+    vertical-align: top;
+  }
+  .field-table tr:last-child td { border-bottom: none; }
+  .field-table td:first-child {
+    color: var(--cp-text);
+    font-weight: 500;
+    width: 30%;
+  }
+  .field-table code {
+    background: var(--cp-bg-elevated);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-family: Consolas, "Courier New", Courier, monospace;
+    font-size: 0.83rem;
+  }
+
+  pre.code {
+    background: var(--cp-bg-elevated);
+    border: 1px solid var(--cp-border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-family: Consolas, "Courier New", Courier, monospace;
+    font-size: 0.82rem;
+    color: var(--cp-text);
+    overflow-x: auto;
+    margin: 10px 0;
+    line-height: 1.5;
+  }
+  pre.code .cmt { color: var(--cp-text-soft); font-style: italic; }
+  pre.code .kw  { color: var(--cp-accent); font-weight: 600; }
+
+  .grid-2 {
+    display: grid;
+    gap: 14px;
+    grid-template-columns: 1fr 1fr;
+  }
+  @media (max-width: 800px) { .grid-2 { grid-template-columns: 1fr; } }
+
+  .mini-stat {
+    background: var(--cp-surface-soft);
+    border: 1px solid var(--cp-border);
+    border-radius: 12px;
+    padding: 12px 14px;
+  }
+  .mini-stat .label {
+    font-size: 0.72rem;
+    color: var(--cp-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 4px;
+  }
+  .mini-stat .value {
+    font-family: Consolas, "Courier New", Courier, monospace;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--cp-text);
+  }
+
+  .footnote {
+    color: var(--cp-text-soft);
+    font-size: 0.78rem;
+    margin-top: 14px;
+    line-height: 1.55;
+  }
+  .footnote a { color: var(--cp-link); text-decoration: none; }
+  .footnote a:hover { text-decoration: underline; }
+
+  .badge-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 0; }
+</style>
+</head>
+<body>
+<div class="container">
+  <header class="page">
+    <div>
+      <h1>Azure SQL Hyperscale + Vector — Portal Setup Guide</h1>
+      <p class="sub">Production-ready Hyperscale instance with HA, named-replica read scale-out, and DiskANN vector index — provisioned entirely through the Azure portal (no scripts).</p>
+      <div class="pill-row">
+        <span class="pill accent">Azure portal · GUI only</span>
+        <span class="pill">Hyperscale · Premium-series</span>
+        <span class="pill">HA replicas + Named replicas</span>
+        <span class="pill success">DiskANN vector index (preview)</span>
+        <span class="pill warning">Real portal screenshots</span>
+      </div>
+    </div>
+    <button class="theme-toggle" id="themeToggle">Toggle theme</button>
+  </header>
+
+  <div class="layout">
+    <nav class="toc">
+      <div class="toc-title">On this page</div>
+      <a href="#overview" class="section">Overview</a>
+      <a href="#prereqs" class="section">Prerequisites</a>
+      <a href="#region-capacity" class="section">Region &amp; capacity</a>
+      <div class="toc-title" style="margin-top:10px">Provisioning steps</div>
+      <a href="#step-1"><span class="num">01</span>Open SQL Databases</a>
+      <a href="#step-2"><span class="num">02</span>Create dropdown</a>
+      <a href="#step-3"><span class="num">03</span>Basics — Project</a>
+      <a href="#step-4"><span class="num">04</span>Create resource group</a>
+      <a href="#step-5"><span class="num">05</span>Basics — DB &amp; server</a>
+      <a href="#step-6"><span class="num">06</span>Create server</a>
+      <a href="#step-7"><span class="num">07</span>Configure compute</a>
+      <a href="#step-8"><span class="num">08</span>Hyperscale + Premium</a>
+      <a href="#step-9"><span class="num">09</span>HA replica = 1</a>
+      <a href="#step-10"><span class="num">10</span>Networking</a>
+      <a href="#step-11"><span class="num">11</span>Public + firewall</a>
+      <a href="#step-12"><span class="num">12</span>Security</a>
+      <a href="#step-13"><span class="num">13</span>Additional settings</a>
+      <a href="#step-14"><span class="num">14</span>Review + create</a>
+      <a href="#step-15"><span class="num">15</span>Deployment in progress</a>
+      <a href="#step-16"><span class="num">16</span>Deployment complete</a>
+      <a href="#step-17"><span class="num">17</span>DB Overview blade</a>
+      <a href="#step-18"><span class="num">18</span>Replicas blade</a>
+      <a href="#step-19"><span class="num">19</span>Create named replica</a>
+      <a href="#step-20"><span class="num">20</span>Query editor</a>
+      <a href="#step-21"><span class="num">21</span>Enable PREVIEW_FEATURES</a>
+      <div class="toc-title" style="margin-top:10px">After deploy</div>
+      <a href="#next-steps">Next: build a DiskANN index</a>
+      <a href="#cleanup">Cleanup</a>
+    </nav>
+
+    <main>
+      <!-- OVERVIEW -->
+      <section id="overview" class="card">
+        <h2>What you will end up with</h2>
+        <p>An Azure SQL Database in the <strong>Hyperscale</strong> service tier configured for a vector-search workload that mirrors what Azure AI Search provides — but inside your existing transactional database.</p>
+        <div class="grid-2">
+          <div class="mini-stat"><div class="label">Service tier</div><div class="value">Hyperscale (HS)</div></div>
+          <div class="mini-stat"><div class="label">Hardware family</div><div class="value">Premium-series (PRMS)</div></div>
+          <div class="mini-stat"><div class="label">Compute</div><div class="value">2 vCores (demo) → scale up</div></div>
+          <div class="mini-stat"><div class="label">High Availability</div><div class="value">1 HA secondary</div></div>
+          <div class="mini-stat"><div class="label">Read scale-out</div><div class="value">Named replicas (added later)</div></div>
+          <div class="mini-stat"><div class="label">Vector index</div><div class="value">DiskANN (PREVIEW_FEATURES = ON)</div></div>
+        </div>
+        <p style="margin-top:12px;color:var(--cp-text-muted);font-size:0.88rem">All 21 screenshots in this guide were captured against a real Hyperscale deployment in a clean lab tenant. They are not mockups. Tenant-specific identifiers (account chip, subscription names, server names, GUIDs) have been masked with placeholders so the workflow stays clear without exposing any tenant.</p>
+      </section>
+
+      <!-- PREREQS -->
+      <section id="prereqs" class="card">
+        <h2>Prerequisites</h2>
+        <ul>
+          <li>An Azure subscription with permission to create resource groups, logical SQL servers, and Hyperscale databases (typically <strong>Contributor</strong> or <strong>Owner</strong> at subscription or resource-group scope).</li>
+          <li>A Microsoft Entra user/group to designate as <strong>Microsoft Entra admin</strong> for the SQL logical server. This guide uses Entra-only authentication — no SQL logins are created.</li>
+          <li>Permission to add firewall rules to the SQL server (the wizard does this for you when you toggle <em>Add current client IP</em>).</li>
+          <li>A workstation that can reach <code>*.database.windows.net</code> on TCP 1433 — needed only if you want to connect from outside the portal.</li>
+        </ul>
+        <div class="callout">
+          <strong>Why Premium-series?</strong> DiskANN — the vector index that powers semantic search inside SQL — is only available on the Hyperscale tier with the <strong>Premium-series</strong> or <strong>Premium-series memory-optimized</strong> hardware family, plus the database-scoped configuration <code>PREVIEW_FEATURES = ON</code>. Standard-series will let you store vectors but not build an index on them.
+        </div>
+      </section>
+
+      <!-- REGION & CAPACITY -->
+      <section id="region-capacity" class="card">
+        <h2>Region &amp; capacity notes</h2>
+        <ul>
+          <li><strong>Premium-series</strong> is available in most major Azure regions but not all. If your target region greys out the PRMS option in the compute picker, pick a nearby paired region or switch the location in the Basics tab.</li>
+          <li><strong>Premium-series memory-optimized (PMO)</strong> is the preferred SKU for DiskANN when you have hot working sets larger than the default cache, but it is region-gated. The screenshots in this guide were captured in <em>Sweden Central</em>, which currently only offers regular Premium-series — that is still fully sufficient for DiskANN.</li>
+          <li>Some subscriptions (e.g. trial or sandbox tenants) have <strong>region locks</strong> that block East US, West Europe etc. for SQL DB. If you see a deployment failure on the region, switch to one in the same geography you do have quota in.</li>
+          <li>Hyperscale provisioning typically takes <strong>15–25 minutes</strong> end-to-end (server + database + HA replica + connection policy). The portal banner often lags ARM by several minutes — see the <em>Tip</em> on step 15.</li>
+        </ul>
+      </section>
+
+      <!-- STEP 1 -->
+      <section id="step-1" class="step">
+        <div class="step-head">
+          <div class="step-num">01</div>
+          <div>
+            <h2>Open the SQL databases blade</h2>
+            <p class="step-sub">Portal home → search for <em>SQL databases</em></p>
+          </div>
+        </div>
+        <div class="step-body">
+          <p>From the Azure portal, click the top search bar (<code>G + /</code>) and type <strong>SQL databases</strong>. Open the service blade. If you have never created a database before, you'll see the empty state with a primary <em>Create SQL database</em> CTA.</p>
+          <figure class="screenshot">
+            <img src="screens/02-sqldb-blade-empty.png" alt="SQL databases blade — empty list state with Create button" />
+            <figcaption>SQL databases blade — empty list state.</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <!-- STEP 2 -->
+      <section id="step-2" class="step">
+        <div class="step-head">
+          <div class="step-num">02</div>
+          <div>
+            <h2>Open the Create dropdown</h2>
+            <p class="step-sub">+ Create → SQL database</p>
+          </div>
+        </div>
+        <div class="step-body">
+          <p>Click the <strong>+ Create</strong> button at the top-left. The split menu offers SQL database, elastic pool, managed instance, etc. Pick <strong>SQL database</strong>.</p>
+          <figure class="screenshot">
+            <img src="screens/03-create-dropdown.png" alt="Create dropdown showing SQL database option" />
+            <figcaption>Create dropdown — choose SQL database.</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <!-- STEP 3 -->
+      <section id="step-3" class="step">
+        <div class="step-head">
+          <div class="step-num">03</div>
+          <div>
+            <h2>Basics — Project details</h2>
+            <p class="step-sub">Subscription &amp; resource group</p>
+          </div>
+        </div>
+        <div class="step-body">
+          <p>You now land on the Create SQL Database wizard. The top section is <em>Project details</em>.</p>
+          <figure class="screenshot">
+            <img src="screens/04-basics-empty.png" alt="Basics tab — empty form" />
+            <figcaption>Basics tab — empty form on first load.</figcaption>
+          </figure>
+          <table class="field-table">
+            <tr><th>Field</th><th>Value</th></tr>
+            <tr><td>Subscription</td><td>Pick the subscription where you want billing to land.</td></tr>
+            <tr><td>Resource group</td><td>Pick existing, or click <em>Create new</em> (next step).</td></tr>
+          </table>
+        </div>
+      </section>
+
+      <!-- STEP 4 -->
+      <section id="step-4" class="step">
+        <div class="step-head">
+          <div class="step-num">04</div>
+          <div>
+            <h2>Create the resource group</h2>
+            <p class="step-sub">e.g. <code>rg-hyperscale-prod</code></p>
+          </div>
+        </div>
+        <div class="step-body">
+          <p>If you don't already have a target resource group, click <strong>Create new</strong> on the Resource group field and give it a descriptive name (we used <code>rg-hyperscale-demo</code> in the screenshots).</p>
+          <figure class="screenshot">
+            <img src="screens/05-rg-dialog.png" alt="Create resource group dialog" />
+            <figcaption>Create new resource group dialog.</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <!-- STEP 5 -->
+      <section id="step-5" class="step">
+        <div class="step-head">
+          <div class="step-num">05</div>
+          <div>
+            <h2>Basics — Database &amp; server details</h2>
+            <p class="step-sub">Name your DB, then create the logical server</p>
+          </div>
+        </div>
+        <div class="step-body">
+          <p>Below Project details, fill in the database name. We used <code>searchdb-demo</code>. For <strong>Server</strong>, you can pick an existing logical server or create one (next step).</p>
+          <table class="field-table">
+            <tr><th>Field</th><th>Recommended value</th></tr>
+            <tr><td>Database name</td><td>A short, environment-tagged name like <code>searchdb-prod</code>.</td></tr>
+            <tr><td>Server</td><td>Click <em>Create new</em> if no suitable logical server exists.</td></tr>
+            <tr><td>Want to use SQL elastic pool?</td><td><strong>No</strong> — Hyperscale databases cannot be in an elastic pool.</td></tr>
+            <tr><td>Workload environment</td><td>Production (this only adjusts the default suggestions).</td></tr>
+          </table>
+          <figure class="screenshot">
+            <img src="screens/06-basics-filled.png" alt="Basics tab with database name and server populated" />
+            <figcaption>Basics tab with database, server, and project values filled in.</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <!-- STEP 6 -->
+      <section id="step-6" class="step">
+        <div class="step-head">
+          <div class="step-num">06</div>
+          <div>
+            <h2>Create the logical SQL server (Entra-only auth)</h2>
+            <p class="step-sub">Region, authentication method, Entra admin</p>
+          </div>
+        </div>
+        <div class="step-body">
+          <p>The server panel collects all of the things you'd normally hard-code in an ARM template. <strong>Use Microsoft Entra-only authentication</strong> in production — it removes the local SQL admin from the threat surface and unblocks managed identity scenarios for apps.</p>
+          <table class="field-table">
+            <tr><th>Field</th><th>Recommended value</th></tr>
+            <tr><td>Server name</td><td>Globally-unique, lowercase, e.g. <code>sql-hs-prod-&lt;tenant&gt;</code>.</td></tr>
+            <tr><td>Location</td><td>Region that supports Premium-series (see <a href="#region-capacity">notes above</a>).</td></tr>
+            <tr><td>Authentication method</td><td><strong>Use only Microsoft Entra authentication</strong>.</td></tr>
+            <tr><td>Set Microsoft Entra admin</td><td>Pick a group (preferred) or user with privileged access.</td></tr>
+          </table>
+          <figure class="screenshot">
+            <img src="screens/07-server-dialog.png" alt="Create SQL server dialog — Entra-only auth selected" />
+            <figcaption>Server dialog — region, Entra-only auth, Entra admin selected.</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <!-- STEP 7 -->
+      <section id="step-7" class="step">
+        <div class="step-head">
+          <div class="step-num">07</div>
+          <div>
+            <h2>Configure compute + storage</h2>
+            <p class="step-sub">Click <em>Configure database</em> to change SKU</p>
+          </div>
+        </div>
+        <div class="step-body">
+          <p>By default the wizard picks <em>General Purpose · Standard-series · 2 vCores</em>. That will not run DiskANN. Click <strong>Configure database</strong> to open the SKU picker.</p>
+          <figure class="screenshot">
+            <img src="screens/08-config-default.png" alt="Configure database — default General Purpose Standard-series" />
+            <figcaption>Wizard default — General Purpose, Standard-series, 2 vCores. Will be changed.</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <!-- STEP 8 -->
+      <section id="step-8" class="step">
+        <div class="step-head">
+          <div class="step-num">08</div>
+          <div>
+            <h2>Pick Hyperscale + Premium-series hardware</h2>
+            <p class="step-sub">Service tier = Hyperscale · Hardware = Premium-series</p>
+          </div>
+        </div>
+        <div class="step-body">
+          <p>In the compute picker:</p>
+          <ol>
+            <li>Change <strong>Service tier</strong> to <em>Hyperscale</em>.</li>
+            <li>Click <strong>Change configuration</strong> under <em>Hardware configuration</em> and choose <strong>Premium-series</strong> (or <em>Premium-series memory-optimized</em> if your region offers it and your working set is large).</li>
+          </ol>
+          <figure class="screenshot">
+            <img src="screens/09-hardware-config.png" alt="Hardware configuration picker — Premium-series selected" />
+            <figcaption>Hardware configuration picker — Premium-series highlighted. PMO is shown when the region supports it.</figcaption>
+          </figure>
+          <div class="callout warning">
+            <strong>Region check:</strong> If Premium-series is greyed out, the region doesn't offer that hardware. Cancel and switch the location on the Basics tab before re-opening this picker.
+          </div>
+        </div>
+      </section>
+
+      <!-- STEP 9 -->
+      <section id="step-9" class="step">
+        <div class="step-head">
+          <div class="step-num">09</div>
+          <div>
+            <h2>Set high-availability replicas = 1 (minimum)</h2>
+            <p class="step-sub">2 vCores for the demo; production usually starts at 4–8</p>
+          </div>
+        </div>
+        <div class="step-body">
+          <p>Once Hyperscale + Premium-series is selected:</p>
+          <ul>
+            <li>Set <strong>vCores</strong> to your target (use the slider). 2 vCores is fine for the screenshot demo; pick 4 or 8 for a real workload.</li>
+            <li>Set <strong>High-availability secondary replicas</strong> to <strong>1</strong> (or more). Hyperscale defaults to 0; HA needs at least 1.</li>
+            <li>Leave <em>Backup storage redundancy</em> at <strong>Geo-redundant backup storage</strong> for prod (or LRS/ZRS if data residency rules it out).</li>
+          </ul>
+          <figure class="screenshot">
+            <img src="screens/10-config-premium-ha1.png" alt="Compute picker — Hyperscale Premium-series 2 vCores HA=1" />
+            <figcaption>Final compute config — Hyperscale, Premium-series, 2 vCores, HA secondary = 1.</figcaption>
+          </figure>
+          <div class="callout">
+            <strong>Why HA=1?</strong> The HA secondary is a hot, synchronously-replicated copy that absorbs planned maintenance and unplanned failovers in seconds rather than minutes. It is not the same thing as a named replica — that's for read scale-out (step 19).
+          </div>
+        </div>
+      </section>
+
+      <!-- STEP 10 -->
+      <section id="step-10" class="step">
+        <div class="step-head">
+          <div class="step-num">10</div>
+          <div>
+            <h2>Networking tab — choose connectivity</h2>
+            <p class="step-sub">Public endpoint (demo) · Private endpoint (production)</p>
+          </div>
+        </div>
+        <div class="step-body">
+          <p>Click <strong>Next: Networking</strong>. For a real production deployment you should pick <strong>Private endpoint</strong> and integrate with your hub VNet. For the demo this guide shows the <strong>Public endpoint</strong> path because it produces a database you can query from the portal's built-in Query Editor (step 20).</p>
+          <figure class="screenshot">
+            <img src="screens/11-networking-default.png" alt="Networking tab — default settings before changes" />
+            <figcaption>Networking tab — default state before changes.</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <!-- STEP 11 -->
+      <section id="step-11" class="step">
+        <div class="step-head">
+          <div class="step-num">11</div>
+          <div>
+            <h2>Allow Azure services + your client IP</h2>
+            <p class="step-sub">Two firewall toggles to set Yes</p>
+          </div>
+        </div>
+        <div class="step-body">
+          <p>Under <em>Firewall rules</em>:</p>
+          <ul>
+            <li>Set <strong>Allow Azure services and resources to access this server</strong> to <strong>Yes</strong> (required for Query Editor preview and many built-in Azure integrations).</li>
+            <li>Set <strong>Add current client IP address</strong> to <strong>Yes</strong> so you can connect from SSMS or VS Code on your laptop.</li>
+          </ul>
+          <figure class="screenshot">
+            <img src="screens/12-networking-public-filled.png" alt="Networking tab — both firewall toggles set to Yes" />
+            <figcaption>Networking tab — both firewall toggles set to Yes.</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <!-- STEP 12 -->
+      <section id="step-12" class="step">
+        <div class="step-head">
+          <div class="step-num">12</div>
+          <div>
+            <h2>Security tab — Defender for SQL</h2>
+            <p class="step-sub">Enable for prod · Skip for short-lived demos</p>
+          </div>
+        </div>
+        <div class="step-body">
+          <p>The Security tab gates Defender for SQL (a 30-day free trial then ~$15/server/month). For production, enable it. For the demo we picked <em>Not now</em> to avoid the trial enrollment.</p>
+          <figure class="screenshot">
+            <img src="screens/13-security-tab.png" alt="Security tab — Defender for SQL Not now selected" />
+            <figcaption>Security tab — Defender for SQL set to Not now for the demo.</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <!-- STEP 13 -->
+      <section id="step-13" class="step">
+        <div class="step-head">
+          <div class="step-num">13</div>
+          <div>
+            <h2>Additional settings — defaults are fine</h2>
+            <p class="step-sub">Blank data source, default collation, default maintenance window</p>
+          </div>
+        </div>
+        <div class="step-body">
+          <p>Leave the defaults: blank data source, <code>SQL_Latin1_General_CP1_CI_AS</code> collation, system-managed maintenance window.</p>
+          <figure class="screenshot">
+            <img src="screens/14-additional-settings.png" alt="Additional settings — defaults" />
+            <figcaption>Additional settings tab — all defaults.</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <!-- STEP 14 -->
+      <section id="step-14" class="step">
+        <div class="step-head">
+          <div class="step-num">14</div>
+          <div>
+            <h2>Review + Create</h2>
+            <p class="step-sub">Last sanity check before the 20-minute deploy</p>
+          </div>
+        </div>
+        <div class="step-body">
+          <p>Skip Tags. Click <strong>Review + create</strong>. Verify SKU shows <em>Hyperscale Premium-series, 2 vCores</em>, HA = 1, your firewall rules, and Entra-only auth on the server. Click <strong>Create</strong>.</p>
+          <figure class="screenshot">
+            <img src="screens/15-review-create.png" alt="Review + create summary" />
+            <figcaption>Final review screen before clicking Create.</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <!-- STEP 15 -->
+      <section id="step-15" class="step">
+        <div class="step-head">
+          <div class="step-num">15</div>
+          <div>
+            <h2>Deployment in progress (~15–25 min)</h2>
+            <p class="step-sub">Server → Database → HA replica → Connection policy</p>
+          </div>
+        </div>
+        <div class="step-body">
+          <p>The portal shows the standard ARM deployment progress panel — the server is created first, then firewall rules and connection policy, then the database (which is the slow step).</p>
+          <figure class="screenshot">
+            <img src="screens/16-deploying.png" alt="Deployment in progress" />
+            <figcaption>Deployment in progress — server resource being created first.</figcaption>
+          </figure>
+          <div class="callout warning">
+            <strong>Portal banner can lag:</strong> The portal often keeps showing "Deployment is in progress" for 5–10 minutes after the database is actually Online. If you're scripting against this, query the database via Azure CLI to confirm:
+          </div>
+          <pre class="code"><span class="cmt"># Side-channel check — confirms DB is Online even if portal still says "in progress"</span>
+<span class="kw">az sql db show</span> -g rg-hyperscale-prod -s &lt;server-name&gt; -n &lt;db-name&gt; --query status -o tsv</pre>
+          <p>If the portal banner is stuck, click the <strong>Refresh</strong> button at the top of the deployment panel — it forces a re-query of ARM and the banner flips to "complete".</p>
+        </div>
+      </section>
+
+      <!-- STEP 16 -->
+      <section id="step-16" class="step">
+        <div class="step-head">
+          <div class="step-num">16</div>
+          <div>
+            <h2>Deployment complete</h2>
+            <p class="step-sub">Go to resource → DB Overview blade</p>
+          </div>
+        </div>
+        <div class="step-body">
+          <p>You'll see the green "Your deployment is complete" banner with a <strong>Go to resource</strong> button in the Next steps panel.</p>
+          <figure class="screenshot">
+            <img src="screens/17-deploy-done.png" alt="Deployment complete with Go to resource button" />
+            <figcaption>Deployment complete — click Go to resource.</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <!-- STEP 17 -->
+      <section id="step-17" class="step">
+        <div class="step-head">
+          <div class="step-num">17</div>
+          <div>
+            <h2>DB Overview blade — verify settings</h2>
+            <p class="step-sub">Pricing tier should read <em>Hyperscale: PRMS, 2 vCores</em></p>
+          </div>
+        </div>
+        <div class="step-body">
+          <p>On the Overview blade, check that the Essentials panel shows <strong>Pricing tier = Hyperscale: PRMS, 2 vCores</strong>, the server FQDN, and Status = Online. The Earliest restore point appears within ~10 minutes of deploy completing.</p>
+          <figure class="screenshot">
+            <img src="screens/18-db-overview.png" alt="Database Overview blade — Essentials panel showing Hyperscale PRMS 2 vCores" />
+            <figcaption>Overview blade — Hyperscale Premium-series, 2 vCores, Online.</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <!-- STEP 18 -->
+      <section id="step-18" class="step">
+        <div class="step-head">
+          <div class="step-num">18</div>
+          <div>
+            <h2>Open the Replicas blade</h2>
+            <p class="step-sub">Left nav → Data management → Replicas</p>
+          </div>
+        </div>
+        <div class="step-body">
+          <p>This blade lists both <strong>geo replicas</strong> (different region, DR) and <strong>named replicas</strong> (same region, read scale-out). It's empty right after deploy.</p>
+          <figure class="screenshot">
+            <img src="screens/19-replicas-blade.png" alt="Replicas blade — no replicas found" />
+            <figcaption>Replicas blade — empty. The HA secondary added in step 9 is not listed here; named/geo replicas are separate.</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <!-- STEP 19 -->
+      <section id="step-19" class="step">
+        <div class="step-head">
+          <div class="step-num">19</div>
+          <div>
+            <h2>Create a named replica for read scale-out</h2>
+            <p class="step-sub">+ Create replica → Named replica</p>
+          </div>
+        </div>
+        <div class="step-body">
+          <p>Click <strong>+ Create replica</strong>. In the dialog:</p>
+          <ul>
+            <li>Set <strong>Replica type</strong> to <strong>Named replica</strong>.</li>
+            <li>Give the replica its own database name — e.g. <code>searchdb-ro</code> (the wizard's default is <code>&lt;primary&gt;_NamedReplica</code> but a clean <code>-ro</code> suffix is more readable in connection strings).</li>
+            <li>Keep the same server.</li>
+            <li>Compute + storage inherits Hyperscale, Premium-series, 2 vCores from the primary — that's what you want.</li>
+            <li>Click <strong>Review + create → Create</strong>.</li>
+          </ul>
+          <figure class="screenshot">
+            <img src="screens/20-named-replica.png" alt="Create named replica dialog with searchdb-ro populated" />
+            <figcaption>Create replica dialog — Named replica selected, name <code>searchdb-demo-ro</code>.</figcaption>
+          </figure>
+          <div class="callout">
+            <strong>Named replica vs HA secondary:</strong> The HA secondary you added in step 9 is invisible to applications — it only exists for failover. A <em>named replica</em> is an independently-addressable read-only endpoint at <code>&lt;replica-name&gt;.&lt;server&gt;.database.windows.net</code> — point your read-heavy and analytics traffic at it to keep the primary's CPU free for writes.
+          </div>
+          <p>Add as many named replicas as your read concurrency needs (Hyperscale supports many; each is billed at the same per-vCore rate as the primary).</p>
+        </div>
+      </section>
+
+      <!-- STEP 20 -->
+      <section id="step-20" class="step">
+        <div class="step-head">
+          <div class="step-num">20</div>
+          <div>
+            <h2>Open the in-portal Query Editor</h2>
+            <p class="step-sub">Left nav → Query editor (preview) → Connect with Entra</p>
+          </div>
+        </div>
+        <div class="step-body">
+          <p>For one-off DBA queries you don't have to install SSMS or Azure Data Studio. Click <strong>Query editor (preview)</strong> in the left nav, leave <em>Microsoft Entra authentication</em> selected, and click <strong>Connect as &lt;your-identity&gt;</strong>.</p>
+          <p>Once connected, click <strong>New query</strong> and paste the T-SQL you want to run.</p>
+          <figure class="screenshot">
+            <img src="screens/21-query-editor.png" alt="Query editor with PREVIEW_FEATURES T-SQL pasted" />
+            <figcaption>Query editor — T-SQL to enable and verify PREVIEW_FEATURES pasted in.</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <!-- STEP 21 -->
+      <section id="step-21" class="step">
+        <div class="step-head">
+          <div class="step-num">21</div>
+          <div>
+            <h2>Flip the PREVIEW_FEATURES switch (DiskANN unlock)</h2>
+            <p class="step-sub">Database-scoped configuration · runs once per database</p>
+          </div>
+        </div>
+        <div class="step-body">
+          <p>Hyperscale exposes DiskANN behind a database-scoped preview flag. Run these two statements in Query Editor and click <strong>Run</strong>:</p>
+          <pre class="code"><span class="cmt">-- Enable Hyperscale preview features (required for DiskANN vector index)</span>
+<span class="kw">ALTER DATABASE SCOPED CONFIGURATION</span> SET PREVIEW_FEATURES = ON;
+
+<span class="cmt">-- Verify the setting (value should be True)</span>
+<span class="kw">SELECT</span> name, value, is_value_default
+<span class="kw">FROM</span> sys.database_scoped_configurations
+<span class="kw">WHERE</span> name = 'PREVIEW_FEATURES';</pre>
+          <p>The second query should return exactly one row with <code>value = True</code> and <code>is_value_default = False</code>:</p>
+          <figure class="screenshot">
+            <img src="screens/22-query-result.png" alt="Query result — PREVIEW_FEATURES = True, is_value_default = False" />
+            <figcaption>Result grid — PREVIEW_FEATURES now True. DiskANN is unlocked.</figcaption>
+          </figure>
+          <div class="callout success">
+            <strong>You're done.</strong> The database can now build DiskANN vector indexes, run vector similarity queries via <code>VECTOR_DISTANCE()</code>, and serve semantic search workloads that previously required a separate Azure AI Search index.
+          </div>
+        </div>
+      </section>
+
+      <!-- NEXT STEPS -->
+      <section id="next-steps" class="card">
+        <h2>Next: build a vector column + DiskANN index</h2>
+        <p>With the database ready, the typical follow-on is a vector column, the DiskANN index, and an embedding-based search query:</p>
+        <pre class="code"><span class="cmt">-- 1. Add a vector column (dimension matches your embedding model, e.g. 1536 for text-embedding-3-small)</span>
+<span class="kw">ALTER TABLE</span> dbo.Documents
+  <span class="kw">ADD</span> embedding <span class="kw">VECTOR</span>(1536) <span class="kw">NULL</span>;
+
+<span class="cmt">-- 2. Populate it (call an embedding model from your ETL or via REST in T-SQL)</span>
+<span class="kw">UPDATE</span> dbo.Documents
+  <span class="kw">SET</span> embedding = AI_GENERATE_EMBEDDINGS(content)  <span class="cmt">-- or insert pre-computed vectors</span>
+<span class="kw">WHERE</span> embedding <span class="kw">IS NULL</span>;
+
+<span class="cmt">-- 3. Build the DiskANN index (one-time, runs in the background)</span>
+<span class="kw">CREATE VECTOR INDEX</span> ix_documents_embedding
+  <span class="kw">ON</span> dbo.Documents(embedding)
+  <span class="kw">WITH</span> (metric = 'cosine', type = 'diskann');
+
+<span class="cmt">-- 4. Run a similarity query</span>
+<span class="kw">SELECT TOP</span> 10
+  d.id, d.title,
+  <span class="kw">VECTOR_DISTANCE</span>('cosine', d.embedding, @query_vector) <span class="kw">AS</span> distance
+<span class="kw">FROM</span> dbo.Documents d
+<span class="kw">ORDER BY</span> distance;</pre>
+        <p>Point read traffic at the named replica created in step 19 to keep vector queries from competing with OLTP writes.</p>
+      </section>
+
+      <!-- CLEANUP -->
+      <section id="cleanup" class="card">
+        <h2>Cleanup (demo only)</h2>
+        <p>A Hyperscale Premium-series 2-vCore database burns ~<strong>$0.80/hour</strong> (compute + storage + HA replica), and a named replica doubles that. If you provisioned this for a demo only, delete the whole resource group when finished:</p>
+        <pre class="code"><span class="cmt"># Quickest way — deletes server, DB, HA replica, named replica, firewall rules in one shot</span>
+<span class="kw">az group delete</span> -g rg-hyperscale-demo --yes --no-wait
+
+<span class="cmt"># Verify it eventually returns NotFound</span>
+<span class="kw">az group show</span> -g rg-hyperscale-demo</pre>
+        <p class="footnote">All 21 screenshots in this guide were captured against a real Hyperscale deployment in a clean Microsoft demo tenant and deleted immediately after. No customer data, account names, or environment-specific identifiers appear in any screenshot.</p>
+      </section>
+    </main>
+  </div>
+</div>
+
+<script>
+  document.getElementById('themeToggle').addEventListener('click', () => {
+    const cur = document.documentElement.getAttribute('data-theme');
+    document.documentElement.setAttribute('data-theme', cur === 'dark' ? 'light' : 'dark');
+  });
+</script>
+</body>
+</html>
